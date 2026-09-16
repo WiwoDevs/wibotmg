@@ -1,5 +1,6 @@
 import { obtenerConfiguracion } from './config.js';
 import { obtenerTablasPermitidas } from './catalogo.js';
+import { TABLAS_GESTION_PERMITIDAS } from './gestion-catalogo.js';
 
 /** Error lanzado cuando una sentencia no supera la validación de solo lectura. */
 export class SqlRechazadoError extends Error {
@@ -86,6 +87,34 @@ export async function validarSelect(
   sqlCrudo: string,
   limiteFilas?: number,
 ): Promise<SqlValidado> {
+  return validarContra(sqlCrudo, await obtenerTablasPermitidas(), limiteFilas);
+}
+
+/**
+ * Misma validación que `validarSelect`, contra las tablas de la base de gestión
+ * (encuestas, leads, llamadas). Es sincrónica porque el catálogo es fijo.
+ *
+ * @param sqlCrudo sentencia escrita por el modelo o por una persona.
+ * @param limiteFilas tope de filas opcional.
+ * @throws {SqlRechazadoError} si la sentencia no es una lectura segura.
+ */
+export function validarSelectGestion(sqlCrudo: string, limiteFilas?: number): SqlValidado {
+  return validarContraSincrono(sqlCrudo, TABLAS_GESTION_PERMITIDAS, limiteFilas);
+}
+
+async function validarContra(
+  sqlCrudo: string,
+  permitidas: ReadonlySet<string>,
+  limiteFilas?: number,
+): Promise<SqlValidado> {
+  return validarContraSincrono(sqlCrudo, permitidas, limiteFilas);
+}
+
+function validarContraSincrono(
+  sqlCrudo: string,
+  permitidas: ReadonlySet<string>,
+  limiteFilas?: number,
+): SqlValidado {
   const { limiteFilas: limitePorDefecto } = obtenerConfiguracion();
   const tope = limiteFilas ?? limitePorDefecto;
 
@@ -113,7 +142,6 @@ export async function validarSelect(
   }
 
   const referenciadas = extraerTablasReferenciadas(limpio);
-  const permitidas = await obtenerTablasPermitidas();
   const nombresCte = extraerNombresCte(limpio);
 
   for (const referencia of referenciadas) {

@@ -57,3 +57,46 @@ export type {
 
 export { HERRAMIENTAS, obtenerHerramienta, herramientasComoJsonSchema } from './herramientas.js';
 export type { Herramienta, FormatoResultado, HerramientaJsonSchema } from './herramientas.js';
+
+export {
+  obtenerBaseGestion,
+  cerrarBaseGestion,
+  consultarGestion,
+  consultarGestionUna,
+  hayBaseGestion,
+  rutaBaseGestion,
+} from './gestion-base.js';
+
+export {
+  TABLAS_GESTION,
+  TABLAS_GESTION_PERMITIDAS,
+  COLUMNAS_PERSONALES_GESTION,
+  estadoBaseGestion,
+} from './gestion-catalogo.js';
+export type { TablaGestion, EstadoBaseGestion } from './gestion-catalogo.js';
+
+export {
+  analizarEncuestas,
+  analizarLeads,
+  analizarLlamadas,
+  buscarLead,
+  buscarLlamadas,
+  listarAnexos,
+} from './gestion-consultas.js';
+export type {
+  AnalisisEncuestas,
+  AnalisisLeads,
+  AnalisisLlamadas,
+  EjeEncuestas,
+  EjeLeads,
+  EjeLlamadas,
+  FilaEncuestas,
+  FilaLeads,
+  FilaLlamadas,
+  FilaAnexo,
+} from './gestion-consultas.js';
+
+export { consultaLibreGestion } from './gestion-consulta-libre.js';
+export type { ResultadoConsultaGestion } from './gestion-consulta-libre.js';
+
+export { validarSelectGestion } from './guardia-sql.js';

@@ -7,3 +7,6 @@ dist/
 *.log
 *.sql.gz
 *.tsbuildinfo
+
+# Excel de origen: traen datos personales de clientes y leads
+data/

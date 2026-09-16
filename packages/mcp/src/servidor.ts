@@ -4,18 +4,28 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { cerrarPool, obtenerConfiguracion } from '@wibot/core';
 import { registrarHerramientas } from './herramientas.js';
 
-const INSTRUCCIONES = `WiBot consulta la base de cupones de servicio de MG Contact (concesionarios MG en Chile).
+const INSTRUCCIONES = `WiBot consulta los datos de MG Contact (concesionarios MG en Chile). Hay dos fuentes.
 
-La tabla de negocio es coupon_file_data: un registro por cupón de servicio emitido, con
-concesionario, sucursal, asesor, vehículo (VIN, patente, modelo) y cliente.
+1. Cupones de servicio (MariaDB, tabla coupon_file_data): un registro por cupón emitido, con
+   concesionario, sucursal, asesor, vehículo (VIN, patente, modelo) y cliente. Desde marzo de 2025.
+   Herramientas: resumen_operacion, ranking, serie_temporal, valores_dimension, buscar_cliente,
+   historial_vehiculo, esquema_cupones, listar_tablas, describir_tabla.
+
+2. Gestión (SQLite, importado de planillas): encuestas de posventa con notas de 1 a 7, leads del
+   CRM con su temperatura, registro telefónico y estadísticas por anexo.
+   Herramientas: encuestas_posventa, leads, buscar_lead, llamadas, buscar_llamadas,
+   anexos_telefonia, esquema_gestion.
 
 Cómo trabajar:
-1. Para volúmenes y KPIs usá resumen_operacion; para "quién lidera" usá ranking; para tendencias, serie_temporal.
+1. Elegí la fuente por el tema: cupones para volumen de servicio; encuestas para satisfacción y NPS;
+   leads para lo comercial; llamadas para el contact center.
 2. Antes de filtrar por un nombre, confirmá que existe con valores_dimension.
-3. Recurrí a consulta_sql solo cuando lo anterior no alcance, y mirá antes esquema_cupones.
-4. Los datos personales (RUT, teléfono, correo, dirección) se enmascaran salvo en búsquedas puntuales
-   con buscar_cliente o historial_vehiculo. No intentes rodear eso con SQL.
-5. Siempre decí a qué período corresponde el número que entregás.`;
+3. Recurrí a consulta_sql solo cuando lo anterior no alcance, indicando la fuente ("cupones" o
+   "gestion"), y mirá antes el esquema correspondiente.
+4. Los datos personales se enmascaran salvo en búsquedas puntuales con buscar_cliente,
+   historial_vehiculo, buscar_lead o buscar_llamadas. No intentes rodear eso con SQL.
+5. Siempre decí a qué período corresponde el número que entregás. Los leads del informe actual son
+   solo de agosto de 2026 y las llamadas solo de agosto de 2026: no los presentes como histórico.`;
 
 /**
  * Levanta el servidor MCP de WiBot sobre stdio.

@@ -13,6 +13,13 @@
   --emisor: #4b49f5;
   --emisor-texto: #f1f1ff;
   --alerta: #ffb547;
+
+  /* Escala de temperatura de leads, del más caliente al más frío. */
+  --calor-4: #ff6b3d;
+  --calor-3: #ffb547;
+  --calor-2: #6fa8ff;
+  --calor-1: #4f6b61;
+
   --peligro: #ff6b6b;
 
   --radio-burbuja: 20px;

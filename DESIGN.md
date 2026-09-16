@@ -32,6 +32,10 @@ Acentos, uno por función:
 | `--alerta` | `#FFB547` | Dato parcial, enmascarado o sucio |
 | `--peligro` | `#FF6B6B` | Error, consulta rechazada |
 
+Para la temperatura de los leads hay una escala propia, la única parte del sistema donde el color
+codifica un valor y no un estado: `--calor-4` `#FF6B3D` (super caliente), `--calor-3` `#FFB547`
+(caliente), `--calor-2` `#6FA8FF` (tibio) y `--calor-1` `#4F6B61` (frío).
+
 El verde nunca se usa como decoración ni como relleno de superficie: marca actividad y foco.
 El violeta no se usa en ningún otro lugar que no sea la voz de la persona.
 

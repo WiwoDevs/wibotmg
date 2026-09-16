@@ -93,6 +93,42 @@ npm run build -w @wibot/web && npm run start -w @wibot/web
 
 La clave de Gemini vive solo en el servidor: el navegador nunca la ve.
 
+## Base de gestión: encuestas, leads y telefonía
+
+Además de los cupones, WiBot lee un SQLite propio con lo que llega en planillas. Los Excel se dejan
+en `data/` y se importan con:
+
+```bash
+npm run datos:importar
+```
+
+El comando recrea cada tabla desde cero, así que se puede repetir cuando lleguen archivos nuevos sin
+duplicar filas. Reconoce los archivos por su nombre, no por su ruta exacta:
+
+| Archivo que busca | Tabla | Qué trae |
+|---|---|---|
+| `*Encuestas PosVenta*.xlsx` | `encuestas` | Respuestas de posventa, una hoja por mes, notas de 1 a 7 |
+| `*stats_delivered*.xlsx` | `encuestas_envios` | A quién se le mandó la encuesta y si la abrió |
+| `*Leads*.xlsx` | `leads` | Leads del CRM con su temperatura y punto de venta |
+| `call_reports.xlsx` | `llamadas` | Registro de la central telefónica |
+| `extension_statistics*.xlsx` | `anexos` | Acumulado por anexo o agente |
+
+**`data/` está en `.gitignore`**: esas planillas traen RUT, teléfonos y correos de clientes reales,
+y el SQLite que generan vive en `.data/`, que tampoco se publica.
+
+Particularidades del origen que el importador resuelve, y conviene conocer:
+
+- El informe de leads viene agrupado: la fecha, el origen y el estado solo aparecen en la primera
+  fila de cada grupo, con un conteo pegado al valor. Se arrastran hacia abajo y se limpia el conteo.
+- Las duraciones de telefonía llegan como fecha serial de Excel (`1 day, 7:02:10`), no como texto.
+- Tanto `call_reports` como el informe de anexos cierran con una fila de totales que se descarta.
+- La columna "Mes de encuesta" trae el mes sin año, así que el período sale del nombre de la hoja.
+- El mismo concesionario aparece como `Forcenter` y `FORCENTER`: se agrupan juntos al consultar.
+- La columna de sentimiento viene vacía en los datos actuales, tanto en llamadas como en anexos.
+
+Qué hay cargado hoy: 3.082 encuestas (marzo 2025 a septiembre 2026), 645 envíos, 2.000 leads
+(solo agosto de 2026), 12.665 tramos de llamada (solo agosto de 2026) y 15 anexos.
+
 ## Modo diagnóstico
 
 Con `WIBOT_DEV=1` aparece un registro técnico: cada ronda contra el modelo, cada consulta a la
@@ -123,9 +159,15 @@ Herramientas expuestas:
 | `valores_dimension` | Qué valores existen de verdad en la base |
 | `buscar_cliente` | Ficha e historial de un cliente puntual |
 | `historial_vehiculo` | Atenciones de una patente o un VIN |
-| `consulta_sql` | SELECT a medida, validado |
-| `esquema_cupones` | Diccionario de la tabla principal |
-| `listar_tablas` · `describir_tabla` | Estructura de la base |
+| `encuestas_posventa` | Satisfacción y NPS por concesionario, sucursal o mes |
+| `leads` | Leads por temperatura, punto de venta, modelo, vendedor o estado |
+| `buscar_lead` | Ficha y seguimiento de un lead puntual |
+| `llamadas` | Volumen, tasa de atención y minutos del contact center |
+| `buscar_llamadas` | Llamadas por número o por texto del resumen |
+| `anexos_telefonia` | Acumulado por anexo o agente |
+| `consulta_sql` | SELECT a medida, validado, contra cualquiera de las dos bases |
+| `esquema_cupones` · `esquema_gestion` | Diccionario de cada base |
+| `listar_tablas` · `describir_tabla` | Estructura de la base de cupones |
 
 ## Seguridad
 
@@ -153,10 +195,10 @@ hay filas con `NombreConcesionario` vacío.
 
 ```
 packages/core   Configuración, pool, guardia SQL, privacidad, consultas y registro de herramientas
+scripts         MariaDB local sin root e importación de los Excel a SQLite
 packages/auth   Usuarios, sesiones, límite de intentos y auditoría sobre SQLite
 packages/mcp    Servidor MCP sobre stdio
 apps/web        Chat WiBot en Next.js, con pantalla de entrada
-scripts         MariaDB local sin root
 PRODUCT.md      Qué es WiBot y para quién
 DESIGN.md       Sistema visual
 ```

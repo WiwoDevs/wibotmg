@@ -14,12 +14,14 @@
     "build": "npm run build -w @wibot/core && npm run build -w @wibot/auth && npm run build -w @wibot/mcp",
     "mcp": "npm run start -w @wibot/mcp",
     "dev": "npm run dev -w @wibot/web",
-    "usuarios": "node packages/auth/dist/cli.js"
+    "usuarios": "node packages/auth/dist/cli.js",
+    "datos:importar": "node scripts/importar-datos.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
+    "exceljs": "^4.4.0",
     "playwright": "^1.63.0"
   }
 }

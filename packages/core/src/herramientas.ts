@@ -11,6 +11,19 @@ import {
   type FiltrosCupones,
 } from './consultas.js';
 import { consultaLibre } from './consulta-libre.js';
+import { consultaLibreGestion } from './gestion-consulta-libre.js';
+import { estadoBaseGestion, TABLAS_GESTION } from './gestion-catalogo.js';
+import {
+  analizarEncuestas,
+  analizarLeads,
+  analizarLlamadas,
+  buscarLead,
+  buscarLlamadas,
+  listarAnexos,
+  type EjeEncuestas,
+  type EjeLeads,
+  type EjeLlamadas,
+} from './gestion-consultas.js';
 import { describirTabla, listarTablas, DICCIONARIO_CUPONES, TABLA_CUPONES } from './catalogo.js';
 import { obtenerConfiguracion } from './config.js';
 import type { EntradaPeriodo, PeriodoRelativo } from './fechas.js';
@@ -62,7 +75,15 @@ function entero(valor: unknown, porDefecto: number): number {
 }
 
 /** Forma de presentación sugerida para el resultado de una herramienta. */
-export type FormatoResultado = 'resumen' | 'ranking' | 'serie' | 'tabla' | 'texto';
+export type FormatoResultado =
+  | 'resumen'
+  | 'ranking'
+  | 'serie'
+  | 'tabla'
+  | 'texto'
+  | 'encuestas'
+  | 'leads'
+  | 'llamadas';
 
 export interface Herramienta {
   nombre: string;
@@ -176,15 +197,23 @@ export const HERRAMIENTAS: Herramienta[] = [
     nombre: 'consulta_sql',
     titulo: 'Consulta SQL de solo lectura',
     descripcion:
-      'Ejecuta un SELECT propio cuando ninguna otra herramienta alcanza: cruces raros, cálculos a medida, cohortes. Solo SELECT o WITH, una sentencia, sin escrituras y con LIMIT obligatorio. Antes de usarla, mirá el esquema con esquema_cupones.',
+      'Ejecuta un SELECT propio cuando ninguna otra herramienta alcanza: cruces raros, cálculos a medida, cohortes. Solo SELECT o WITH, una sentencia, sin escrituras y con LIMIT obligatorio. Elegí la base con "fuente" y mirá antes su esquema: esquema_cupones para los cupones (MariaDB), esquema_gestion para encuestas, leads y llamadas (SQLite).',
     esquema: {
       sql: z.string().min(10).describe('Sentencia SELECT o WITH, sin punto y coma final.'),
+      fuente: z
+        .enum(['cupones', 'gestion'])
+        .optional()
+        .describe('"cupones" (por defecto) o "gestion" para encuestas, leads, llamadas y anexos.'),
       limite: z.number().int().min(1).max(5000).optional().describe('Tope de filas.'),
     },
     formato: 'tabla',
     ejecutar: (argumentos) => {
       const limite = typeof argumentos.limite === 'number' ? Math.trunc(argumentos.limite) : undefined;
-      return consultaLibre(String(argumentos.sql ?? ''), limite);
+      const sql = String(argumentos.sql ?? '');
+      if (argumentos.fuente === 'gestion') {
+        return Promise.resolve(consultaLibreGestion(sql, limite));
+      }
+      return consultaLibre(sql, limite);
     },
   },
   {
@@ -228,6 +257,166 @@ export const HERRAMIENTAS: Herramienta[] = [
     esquema: { tabla: z.string().min(2).describe('Nombre de la tabla, con o sin prefijo.') },
     formato: 'tabla',
     ejecutar: (argumentos) => describirTabla(String(argumentos.tabla ?? '')),
+  },
+  {
+    nombre: 'encuestas_posventa',
+    titulo: 'Encuestas de posventa',
+    descripcion:
+      'Satisfacción de los clientes después de un servicio: promedio de cada nota (1 a 7), NPS y porcentaje de respuestas afirmativas, agrupado por concesionario, sucursal o mes. Responde "cómo nos evalúan", "qué sucursal tiene peor nota", "cómo viene el NPS".',
+    esquema: {
+      agrupar_por: z
+        .enum(['concesionario', 'sucursal', 'mes', 'total'])
+        .optional()
+        .describe('Eje del análisis. Por defecto "concesionario".'),
+      concesionario: z.string().optional().describe('Filtra por concesionario. Coincidencia parcial.'),
+      sucursal: z.string().optional().describe('Filtra por sucursal. Coincidencia parcial.'),
+      limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
+      ...periodoShape,
+    },
+    formato: 'encuestas',
+    ejecutar: async (argumentos) => {
+      const filtros: { concesionario?: string; sucursal?: string } = {};
+      if (typeof argumentos.concesionario === 'string') filtros.concesionario = argumentos.concesionario;
+      if (typeof argumentos.sucursal === 'string') filtros.sucursal = argumentos.sucursal;
+      return analizarEncuestas(
+        (argumentos.agrupar_por as EjeEncuestas) ?? 'concesionario',
+        extraerPeriodo(argumentos),
+        filtros,
+        entero(argumentos.limite, 20),
+      );
+    },
+  },
+  {
+    nombre: 'leads',
+    titulo: 'Leads del CRM',
+    descripcion:
+      'Leads comerciales con su temperatura (Super Caliente, Caliente, Tibio, Frío), agrupados por valoración, concesionario, punto de venta, modelo de interés, estado, origen o vendedor. Responde "cuántos leads calientes hay", "qué punto de venta recibe más", "cuántos se convirtieron".',
+    esquema: {
+      agrupar_por: z
+        .enum(['valoracion', 'concesionario', 'punto_venta', 'modelo_interes', 'estado', 'origen', 'utm_origen', 'dueno', 'fecha', 'total'])
+        .optional()
+        .describe('Eje del análisis. Por defecto "valoracion".'),
+      valoracion: z.string().optional().describe('Filtra por temperatura: Super Caliente, Caliente, Tibio o Frío.'),
+      concesionario: z.string().optional().describe('Filtra por concesionario. Coincidencia parcial.'),
+      punto_venta: z.string().optional().describe('Filtra por punto de venta. Coincidencia parcial.'),
+      estado: z.string().optional().describe('Filtra por estado del CRM.'),
+      modelo_interes: z.string().optional().describe('Filtra por modelo de interés.'),
+      limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
+      ...periodoShape,
+    },
+    formato: 'leads',
+    ejecutar: async (argumentos) => {
+      const claves = ['valoracion', 'concesionario', 'punto_venta', 'estado', 'modelo_interes'] as const;
+      const filtros: Record<string, string> = {};
+      for (const clave of claves) {
+        const valor = argumentos[clave];
+        if (typeof valor === 'string' && valor.trim() !== '') filtros[clave] = valor;
+      }
+      return analizarLeads(
+        (argumentos.agrupar_por as EjeLeads) ?? 'valoracion',
+        extraerPeriodo(argumentos),
+        filtros,
+        entero(argumentos.limite, 20),
+      );
+    },
+  },
+  {
+    nombre: 'buscar_lead',
+    titulo: 'Buscar un lead',
+    descripcion:
+      'Búsqueda puntual de leads por nombre, RUT, correo o teléfono, con su vendedor, estado, temperatura y las notas del seguimiento. Devuelve datos personales: usala solo para un lead concreto.',
+    esquema: {
+      texto: z.string().min(3).describe('Nombre, RUT, correo o teléfono. Mínimo 3 caracteres.'),
+      limite: z.number().int().min(1).max(50).optional().describe('Cantidad de leads. Por defecto 10.'),
+    },
+    formato: 'tabla',
+    ejecutar: async (argumentos) => {
+      const resultado = buscarLead(String(argumentos.texto ?? ''), entero(argumentos.limite, 10));
+      return { leads: resultado.filas, columnasEnmascaradas: resultado.columnasEnmascaradas };
+    },
+  },
+  {
+    nombre: 'llamadas',
+    titulo: 'Telefonía',
+    descripcion:
+      'Registro de la central telefónica: volumen de llamadas, tasa de atención, minutos hablados y costo, agrupado por dirección (entrantes o salientes), estado, día, origen o destino.',
+    esquema: {
+      agrupar_por: z
+        .enum(['direccion', 'estado', 'fecha', 'origen', 'destino', 'total'])
+        .optional()
+        .describe('Eje del análisis. Por defecto "direccion".'),
+      direccion: z.string().optional().describe('Filtra por Inbound, Outbound o Inbound Queue.'),
+      estado: z.string().optional().describe('Filtra por Answered, Unanswered o Waiting.'),
+      limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
+      ...periodoShape,
+    },
+    formato: 'llamadas',
+    ejecutar: async (argumentos) => {
+      const filtros: { direccion?: string; estado?: string } = {};
+      if (typeof argumentos.direccion === 'string') filtros.direccion = argumentos.direccion;
+      if (typeof argumentos.estado === 'string') filtros.estado = argumentos.estado;
+      return analizarLlamadas(
+        (argumentos.agrupar_por as EjeLlamadas) ?? 'direccion',
+        extraerPeriodo(argumentos),
+        filtros,
+        entero(argumentos.limite, 20),
+      );
+    },
+  },
+  {
+    nombre: 'buscar_llamadas',
+    titulo: 'Buscar llamadas',
+    descripcion:
+      'Busca llamadas por número, o por texto dentro del resumen o de la transcripción. Devuelve el contenido de conversaciones: usala solo para un caso concreto.',
+    esquema: {
+      texto: z.string().min(3).describe('Número, o palabras del resumen o la transcripción.'),
+      limite: z.number().int().min(1).max(50).optional().describe('Cantidad de llamadas. Por defecto 15.'),
+    },
+    formato: 'tabla',
+    ejecutar: async (argumentos) => {
+      const resultado = buscarLlamadas(String(argumentos.texto ?? ''), entero(argumentos.limite, 15));
+      return { llamadas: resultado.filas, columnasEnmascaradas: resultado.columnasEnmascaradas };
+    },
+  },
+  {
+    nombre: 'anexos_telefonia',
+    titulo: 'Anexos telefónicos',
+    descripcion:
+      'Estadísticas acumuladas por anexo o agente: atendidas y perdidas, entrantes y salientes, y minutos hablados. Responde "qué anexo pierde más llamadas".',
+    esquema: {
+      limite: z.number().int().min(1).max(200).optional().describe('Cantidad de anexos. Por defecto 50.'),
+    },
+    formato: 'tabla',
+    ejecutar: async (argumentos) => listarAnexos(entero(argumentos.limite, 50)),
+  },
+  {
+    nombre: 'esquema_gestion',
+    titulo: 'Esquema de la base de gestión',
+    descripcion:
+      'Diccionario de las tablas de encuestas de posventa, leads del CRM, llamadas y anexos, con el significado de cada columna y cuántas filas hay. Consultalo antes de escribir SQL con fuente "gestion".',
+    esquema: {},
+    formato: 'texto',
+    ejecutar: async () => {
+      const estado = estadoBaseGestion();
+      if (!estado.disponible) {
+        return {
+          disponible: false,
+          mensaje: 'La base de gestión todavía no fue generada. Corré: npm run datos:importar',
+        };
+      }
+      return {
+        disponible: true,
+        ultimaImportacion: estado.ultimaImportacion,
+        volumen: estado.tablas,
+        notasDeCalidad: [
+          'Las notas de encuesta van de 1 a 7. El NPS se calcula con 7 como promotor, 6 pasivo y 5 o menos detractor.',
+          'Los leads del informe actual son todos de agosto de 2026; no hay histórico más largo.',
+          'La columna sentimiento de llamadas y anexos viene vacía en los datos actuales.',
+          'Una llamada puede tener varios tramos con el mismo llamada_id.',
+        ],
+        tablas: TABLAS_GESTION,
+      };
+    },
   },
 ];
 

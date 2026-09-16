@@ -1,5 +1,6 @@
 import { obtenerConfiguracion } from './config.js';
 import { COLUMNAS_PERSONALES } from './catalogo.js';
+import { COLUMNAS_PERSONALES_GESTION } from './gestion-catalogo.js';
 
 /**
  * Enmascara un RUT chileno dejando visibles los dos primeros dígitos.
@@ -35,6 +36,12 @@ export function enmascararNombre(valor: string): string {
     .join(' ');
 }
 
+/** Indica si una columna contiene datos personales, mire a la base que mire. */
+function esColumnaPersonal(columna: string): boolean {
+  const nombre = columna.toLowerCase();
+  return COLUMNAS_PERSONALES.has(nombre) || COLUMNAS_PERSONALES_GESTION.has(nombre);
+}
+
 function enmascararValor(columna: string, valor: unknown): unknown {
   if (valor === null || valor === undefined) return valor;
   const texto = String(valor);
@@ -46,6 +53,8 @@ function enmascararValor(columna: string, valor: unknown): unknown {
   if (nombre.includes('telefono') || nombre.includes('celular')) return enmascararTelefono(texto);
   if (nombre.includes('direccion')) return '•••';
   if (nombre.includes('fechanacimiento')) return '•••';
+  if (nombre === 'resumen' || nombre === 'transcripcion') return '•••';
+  if (nombre === 'origen' || nombre === 'destino') return enmascararTelefono(texto);
   return enmascararNombre(texto);
 }
 
@@ -90,9 +99,7 @@ export function aplicarPolitica<T extends Record<string, unknown>>(
   const primera = filas[0];
   if (!primera) return { filas, columnasEnmascaradas: [] };
 
-  const columnasPersonales = Object.keys(primera).filter((columna) =>
-    COLUMNAS_PERSONALES.has(columna.toLowerCase()),
-  );
+  const columnasPersonales = Object.keys(primera).filter((columna) => esColumnaPersonal(columna));
 
   if (columnasPersonales.length === 0) {
     return { filas, columnasEnmascaradas: [] };

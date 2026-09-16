@@ -413,6 +413,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.medidorLeads {
+  grid-column: 1 / -1;
+}
+
 .fila + .fila {
   border-top: 1px solid var(--linea);
 }
@@ -440,11 +444,50 @@
 
 .medidor {
   grid-column: 2 / -1;
+  display: flex;
   height: 3px;
   border-radius: 999px;
   background: var(--linea);
   overflow: hidden;
 }
+
+/* Barra segmentada por temperatura de lead. */
+.tramo {
+  display: block;
+  height: 100%;
+}
+
+.calor4 { background: var(--calor-4); }
+.calor3 { background: var(--calor-3); }
+.calor2 { background: var(--calor-2); }
+.calor1 { background: var(--calor-1); }
+
+.notaBloque {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--linea);
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.puntoLeyenda {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.npsBueno { color: var(--senal); }
+.npsMedio { color: var(--alerta); }
+.npsMalo { color: var(--peligro); }
 
 .medidorRelleno {
   height: 100%;
@@ -453,7 +496,45 @@
 }
 
 /* El primer lugar del ranking es el único que va al verde pleno. */
-.fila:first-child .medidorRelleno {
+.fila:first-child /* Barra segmentada por temperatura de lead. */
+.tramo {
+  display: block;
+  height: 100%;
+}
+
+.calor4 { background: var(--calor-4); }
+.calor3 { background: var(--calor-3); }
+.calor2 { background: var(--calor-2); }
+.calor1 { background: var(--calor-1); }
+
+.notaBloque {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--linea);
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.puntoLeyenda {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.npsBueno { color: var(--senal); }
+.npsMedio { color: var(--alerta); }
+.npsMalo { color: var(--peligro); }
+
+.medidorRelleno {
   background: var(--senal);
 }
 
