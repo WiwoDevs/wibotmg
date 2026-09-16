@@ -87,3 +87,14 @@ export function IconoDesplegar(props: PropsIcono) {
     </Base>
   );
 }
+
+/** Puerta con flecha: cerrar la sesión. */
+export function IconoSalir(props: PropsIcono) {
+  return (
+    <Base {...props}>
+      <path d="M14 20H6.5A1.5 1.5 0 0 1 5 18.5v-13A1.5 1.5 0 0 1 6.5 4H14" />
+      <path d="M17 15.5 20.5 12 17 8.5" />
+      <path d="M20 12h-9" />
+    </Base>
+  );
+}

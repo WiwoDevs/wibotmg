@@ -89,7 +89,7 @@ export async function crearUsuario(
 export function buscarPorCorreo(correo: string): Usuario | undefined {
   const fila = obtenerBaseAcceso()
     .prepare('SELECT * FROM usuarios WHERE correo = ?')
-    .get(normalizarCorreo(correo)) as FilaUsuario | undefined;
+    .get(normalizarCorreo(correo)) as unknown as FilaUsuario | undefined;
   return fila ? aUsuario(fila) : undefined;
 }
 
@@ -105,7 +105,7 @@ export function buscarPorId(id: number): Usuario | undefined {
 export function listarUsuarios(): Usuario[] {
   const filas = obtenerBaseAcceso()
     .prepare('SELECT * FROM usuarios ORDER BY creado_en DESC')
-    .all() as FilaUsuario[];
+    .all() as unknown as FilaUsuario[];
   return filas.map(aUsuario);
 }
 
@@ -113,7 +113,7 @@ export function listarUsuarios(): Usuario[] {
 export function hayUsuariosActivos(): boolean {
   const fila = obtenerBaseAcceso()
     .prepare('SELECT COUNT(*) AS total FROM usuarios WHERE activo = 1')
-    .get() as { total: number } | undefined;
+    .get() as unknown as { total: number } | undefined;
   return (fila?.total ?? 0) > 0;
 }
 
@@ -128,7 +128,7 @@ export async function verificarCredenciales(
 ): Promise<Usuario | undefined> {
   const fila = obtenerBaseAcceso()
     .prepare('SELECT * FROM usuarios WHERE correo = ?')
-    .get(normalizarCorreo(correo)) as FilaUsuario | undefined;
+    .get(normalizarCorreo(correo)) as unknown as FilaUsuario | undefined;
 
   if (!fila || fila.activo !== 1) return undefined;
   const valida = await verificarContrasena(contrasena, fila.contrasena);
@@ -136,16 +136,25 @@ export async function verificarCredenciales(
 }
 
 /**
- * Cambia la contraseña de un usuario y limpia la marca de cambio obligatorio.
+ * Cambia la contraseña de un usuario.
+ *
+ * @param correo correo del usuario.
+ * @param nueva contraseña nueva en claro.
+ * @param debeCambiar true cuando la contraseña la fija un administrador y la
+ *   persona tiene que reemplazarla al entrar; false cuando la eligió ella misma.
  * @throws {Error} si el usuario no existe o la contraseña es demasiado corta.
  */
-export async function cambiarContrasena(correo: string, nueva: string): Promise<void> {
+export async function cambiarContrasena(
+  correo: string,
+  nueva: string,
+  debeCambiar = false,
+): Promise<void> {
   const usuario = buscarPorCorreo(correo);
   if (!usuario) throw new Error(`No existe un usuario con el correo ${correo}`);
   const hash = await derivarContrasena(nueva);
   obtenerBaseAcceso()
-    .prepare('UPDATE usuarios SET contrasena = ?, debe_cambiar = 0 WHERE id = ?')
-    .run(hash, usuario.id);
+    .prepare('UPDATE usuarios SET contrasena = ?, debe_cambiar = ? WHERE id = ?')
+    .run(hash, debeCambiar ? 1 : 0, usuario.id);
 }
 
 /**

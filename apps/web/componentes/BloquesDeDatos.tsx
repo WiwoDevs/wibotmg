@@ -78,8 +78,11 @@ function VistaResumen({ datos }: { datos: ResumenOperacion }) {
     ['Clientes distintos', formatearNumero(datos.clientes)],
     ['Vehículos', formatearNumero(datos.vehiculos)],
     ['Concesionarios', formatearNumero(datos.concesionarios)],
-    ['Kilometraje medio', datos.kilometrajePromedio === null ? '—' : `${formatearNumero(datos.kilometrajePromedio)} km`],
   ];
+
+  // El kilometraje lleva unidad y no entra en media fila junto a su etiqueta.
+  const kilometraje =
+    datos.kilometrajePromedio === null ? '—' : `${formatearNumero(datos.kilometrajePromedio)} km`;
 
   return (
     <section className={estilos.bloque}>
@@ -95,6 +98,10 @@ function VistaResumen({ datos }: { datos: ResumenOperacion }) {
             <span className={estilos.lecturaValor}>{valor}</span>
           </div>
         ))}
+        <div className={`${estilos.lectura} ${estilos.lecturaAncha}`}>
+          <span className={estilos.lecturaEtiqueta}>Kilometraje promedio</span>
+          <span className={estilos.lecturaValor}>{kilometraje}</span>
+        </div>
       </div>
       {datos.porTipoDocumento.length > 0 ? (
         <div className={estilos.filas}>

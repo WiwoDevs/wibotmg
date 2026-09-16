@@ -58,7 +58,7 @@ export function listarAuditoria(limite = 50): RegistroAuditoria[] {
       `SELECT id, correo, pregunta, herramientas, con_datos_personales, ip, ocurrido_en
          FROM auditoria ORDER BY ocurrido_en DESC LIMIT ?`,
     )
-    .all(tope) as Array<{
+    .all(tope) as unknown as Array<{
     id: number;
     correo: string;
     pregunta: string;

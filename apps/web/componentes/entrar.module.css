@@ -1,0 +1,145 @@
+.pantalla {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.tarjeta {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px;
+  border: 1px solid var(--linea);
+  border-radius: 20px;
+  background: var(--superficie);
+  animation: aparecer 260ms var(--curva) both;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.bajada {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.introduccion {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.etiqueta {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.entrada {
+  padding: 10px 12px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie-alta);
+  color: var(--texto);
+  font: inherit;
+  caret-color: var(--senal);
+  transition-property: border-color;
+  transition-duration: 150ms;
+}
+
+.entrada:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--senal) 45%, var(--linea));
+}
+
+.pista {
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--peligro) 35%, var(--linea));
+  border-radius: var(--radio-bloque);
+  background: color-mix(in srgb, var(--peligro) 8%, var(--superficie));
+  font-size: 13px;
+}
+
+.error svg {
+  color: var(--peligro);
+  flex: none;
+  margin-top: 1px;
+}
+
+.boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: var(--radio-bloque);
+  background: var(--senal);
+  color: #04160c;
+  font-weight: 600;
+  transition-property: scale, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: var(--curva);
+}
+
+.boton:active {
+  scale: 0.98;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.botonFlecha {
+  rotate: 90deg;
+}

@@ -56,7 +56,7 @@ export function validarSesion(token: string | undefined): Usuario | undefined {
   const base = obtenerBaseAcceso();
   const fila = base
     .prepare('SELECT usuario_id, expira_en FROM sesiones WHERE token_hash = ?')
-    .get(hashearToken(token)) as { usuario_id: number; expira_en: string } | undefined;
+    .get(hashearToken(token)) as unknown as { usuario_id: number; expira_en: string } | undefined;
 
   if (!fila) return undefined;
 

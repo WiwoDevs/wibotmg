@@ -13,7 +13,7 @@ Las dos comparten `packages/core`, que es lo único que toca la base de datos.
 ```bash
 npm install
 cp .env.example .env     # completar credenciales
-npm run build            # compila core y MCP
+npm run build            # compila core, auth y MCP
 ```
 
 ### Base de datos local (desde el dump)
@@ -47,6 +47,42 @@ DB_PASSWORD=...
 
 Conviene crear en el servidor un usuario de MySQL con permiso `SELECT` exclusivamente sobre
 esa base, en vez de usar el usuario de WordPress.
+
+## Quién puede entrar
+
+WiBot no es público: sin sesión, cualquier ruta redirige a `/entrar` y la API responde 401.
+Las cuentas viven en un SQLite propio (`.data/wibot.sqlite`), separado de la base de MG Contact,
+que también guarda las sesiones y la auditoría.
+
+```bash
+npm run usuarios -- crear correo@wiwo.me "Nombre Apellido"   # alta, devuelve clave temporal
+npm run usuarios -- listar                                   # quién tiene acceso y cuándo entró
+npm run usuarios -- clave correo@wiwo.me                     # nueva clave temporal
+npm run usuarios -- desactivar correo@wiwo.me                # baja: cierra todas sus sesiones
+npm run usuarios -- activar correo@wiwo.me
+npm run usuarios -- auditoria 20                             # últimas consultas, con quién las hizo
+```
+
+La primera cuenta hay que crearla desde el servidor: mientras no exista ninguna, la pantalla de
+entrada lo dice en vez de mostrar un formulario contra el que nadie puede entrar.
+
+Cómo está protegido:
+
+- **Contraseñas** derivadas con scrypt (N=2^15) y sal propia. En la base nunca hay una contraseña.
+- **Clave temporal obligatoria.** El alta y todo reseteo hecho por un administrador obligan a
+  cambiarla en el primer acceso.
+- **Sesiones** con token de 32 bytes en cookie `httpOnly`, `SameSite=Lax`; en la base solo queda
+  su SHA-256, así que un volcado del SQLite no permite suplantar a nadie. Duran
+  `WIBOT_SESSION_HOURS` (12 por defecto) y las vencidas se purgan solas.
+- **Fuerza bruta:** cinco intentos fallidos bloquean quince minutos, contando por correo y por IP
+  por separado. La respuesta es la misma exista o no la cuenta, para no revelar qué correos están
+  registrados.
+- **Auditoría:** cada pregunta queda registrada con usuario, IP, fecha y herramientas usadas, y
+  marcada aparte si tocó datos personales.
+- **Cookie segura:** poné `WIBOT_COOKIE_SEGURA=1` al servir por HTTPS.
+
+Al servir WiBot fuera de `localhost`, ponelo detrás de HTTPS: la cookie de sesión y las
+contraseñas viajan en cada petición.
 
 ## Chat web
 
@@ -88,6 +124,8 @@ Herramientas expuestas:
   `aggregate` (por defecto) los enmascara salvo en `buscar_cliente` e `historial_vehiculo`,
   `masked` los enmascara siempre, `full` no restringe nada.
 - **Secretos.** Solo en `.env`, que está en `.gitignore`. Nada de claves en el código.
+- **Acceso.** Ver la sección "Quién puede entrar": sesión obligatoria, contraseñas con scrypt,
+  bloqueo por fuerza bruta y auditoría de cada consulta.
 
 ## Qué hay en la base
 
@@ -103,8 +141,9 @@ hay filas con `NombreConcesionario` vacío.
 
 ```
 packages/core   Configuración, pool, guardia SQL, privacidad, consultas y registro de herramientas
+packages/auth   Usuarios, sesiones, límite de intentos y auditoría sobre SQLite
 packages/mcp    Servidor MCP sobre stdio
-apps/web        Chat WiBot en Next.js
+apps/web        Chat WiBot en Next.js, con pantalla de entrada
 scripts         MariaDB local sin root
 PRODUCT.md      Qué es WiBot y para quién
 DESIGN.md       Sistema visual

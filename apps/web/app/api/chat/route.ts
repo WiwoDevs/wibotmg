@@ -1,4 +1,6 @@
+import { registrarConsulta } from '@wibot/auth';
 import { conversar } from '@/lib/gemini';
+import { obtenerIp, obtenerUsuarioActual } from '@/lib/sesion';
 import type { EventoChat, TurnoEnviado } from '@/lib/tipos';
 
 export const runtime = 'nodejs';
@@ -25,6 +27,11 @@ function normalizarHistorial(valor: unknown): TurnoEnviado[] {
  * consultas en curso, bloques de datos y el texto de WiBot a medida que se genera.
  */
 export async function POST(peticion: Request): Promise<Response> {
+  const usuario = await obtenerUsuarioActual();
+  if (!usuario) {
+    return Response.json({ error: 'Tu sesión expiró. Volvé a entrar.' }, { status: 401 });
+  }
+
   let cuerpo: CuerpoPeticion;
   try {
     cuerpo = (await peticion.json()) as CuerpoPeticion;
@@ -41,6 +48,7 @@ export async function POST(peticion: Request): Promise<Response> {
   }
 
   const historial = normalizarHistorial(cuerpo.historial);
+  const ip = await obtenerIp(peticion);
   const codificador = new TextEncoder();
 
   const flujo = new ReadableStream<Uint8Array>({
@@ -49,8 +57,11 @@ export async function POST(peticion: Request): Promise<Response> {
         controlador.enqueue(codificador.encode(`${JSON.stringify(evento)}\n`));
       };
 
+      const herramientasUsadas: string[] = [];
+
       try {
         for await (const evento of conversar(historial, pregunta)) {
+          if (evento.tipo === 'consultando') herramientasUsadas.push(evento.herramienta);
           emitir(evento);
         }
       } catch (error) {
@@ -58,6 +69,7 @@ export async function POST(peticion: Request): Promise<Response> {
         emitir({ tipo: 'error', mensaje });
         emitir({ tipo: 'fin' });
       } finally {
+        registrarConsulta(usuario.id, usuario.correo, pregunta, herramientasUsadas, ip);
         controlador.close();
       }
     },

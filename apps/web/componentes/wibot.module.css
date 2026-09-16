@@ -82,8 +82,44 @@
   color: var(--texto-suave);
 }
 
-.contadorBase {
+.sesion {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.salir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  background: none;
+  color: var(--texto-suave);
+  font-size: 12px;
+  transition-property: color, border-color, background-color;
+  transition-duration: 150ms;
+}
+
+.salir:hover {
+  color: var(--texto);
+  border-color: color-mix(in srgb, var(--senal) 35%, var(--linea));
+}
+
+.salir:active {
+  scale: 0.96;
+}
+
+.salirNombre {
+  max-width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contadorBase {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -281,8 +317,13 @@
   background: var(--superficie-alta);
 }
 
-.lecturaPrincipal {
+.lecturaPrincipal,
+.lecturaAncha {
   grid-column: 1 / -1;
+}
+
+.lecturaEtiqueta {
+  min-width: 0;
 }
 
 .lecturaEtiqueta {

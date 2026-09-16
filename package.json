@@ -11,9 +11,10 @@
     "db:start": "bash scripts/db-local.sh start",
     "db:stop": "bash scripts/db-local.sh stop",
     "db:import": "bash scripts/db-local.sh import",
-    "build": "npm run build -w @wibot/core && npm run build -w @wibot/mcp",
+    "build": "npm run build -w @wibot/core && npm run build -w @wibot/auth && npm run build -w @wibot/mcp",
     "mcp": "npm run start -w @wibot/mcp",
-    "dev": "npm run dev -w @wibot/web"
+    "dev": "npm run dev -w @wibot/web",
+    "usuarios": "node packages/auth/dist/cli.js"
   },
   "engines": {
     "node": ">=20"

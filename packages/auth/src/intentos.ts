@@ -26,7 +26,7 @@ export function revisarBloqueo(correo: string, ip: string): EstadoBloqueo {
          FROM intentos
         WHERE exito = 0 AND ocurrido_en >= ? AND (correo = ? OR ip = ?)`,
     )
-    .get(desde, normalizarCorreo(correo), ip) as { fallidos: number; primero: string | null } | undefined;
+    .get(desde, normalizarCorreo(correo), ip) as unknown as { fallidos: number; primero: string | null } | undefined;
 
   const fallidos = fila?.fallidos ?? 0;
   if (fallidos < intentosMaximos || !fila?.primero) {

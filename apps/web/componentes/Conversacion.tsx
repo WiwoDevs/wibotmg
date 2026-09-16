@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { BloqueDatos, EventoChat, MensajeChat } from '@/lib/tipos';
 import { BloqueDeDatos } from './BloquesDeDatos';
 import { MarcaWiBot } from './MarcaWiBot';
 import { TextoRico } from './TextoRico';
-import { IconoAlerta, IconoBase, IconoDesplegar, IconoDetener, IconoEnviar } from './Iconos';
+import { IconoAlerta, IconoBase, IconoDesplegar, IconoDetener, IconoEnviar, IconoSalir } from './Iconos';
 import estilos from './wibot.module.css';
 
 const SUGERENCIAS = [
@@ -39,13 +40,15 @@ function identificador(): string {
 interface Props {
   nombreBase: string;
   modoPrivacidad: string;
+  usuario: { nombre: string; correo: string };
 }
 
 /**
  * Conversación completa de WiBot: cabecera, hilo de mensajes y campo de escritura.
  * Consume el flujo NDJSON de /api/chat y va componiendo el turno en curso.
  */
-export function Conversacion({ nombreBase, modoPrivacidad }: Props) {
+export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
+  const router = useRouter();
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [borrador, setBorrador] = useState('');
   const [consultaEnCurso, setConsultaEnCurso] = useState<string | null>(null);
@@ -111,6 +114,12 @@ export function Conversacion({ nombreBase, modoPrivacidad }: Props) {
           signal: aborto.signal,
         });
 
+        if (respuesta.status === 401) {
+          router.replace('/entrar');
+          router.refresh();
+          return;
+        }
+
         if (!respuesta.ok || !respuesta.body) {
           const detalle = (await respuesta.json().catch(() => null)) as { error?: string } | null;
           throw new Error(detalle?.error ?? `El servidor respondió ${respuesta.status}.`);
@@ -171,8 +180,15 @@ export function Conversacion({ nombreBase, modoPrivacidad }: Props) {
         setConsultaEnCurso(null);
       }
     },
-    [ajustarAltura, mensajes, trabajando],
+    [ajustarAltura, mensajes, router, trabajando],
   );
+
+  const salir = useCallback(async (): Promise<void> => {
+    abortoRef.current?.abort();
+    await fetch('/api/sesion', { method: 'DELETE' }).catch(() => undefined);
+    router.replace('/entrar');
+    router.refresh();
+  }, [router]);
 
   const conversacionVacia = mensajes.length === 0;
 
@@ -190,10 +206,21 @@ export function Conversacion({ nombreBase, modoPrivacidad }: Props) {
           </h1>
           <p className={estilos.bajada}>WIWO · Inteligencia ejecutiva</p>
         </div>
-        <p className={estilos.contadorBase} title={`Base ${nombreBase}, privacidad ${modoPrivacidad}`}>
-          <IconoBase tamano={14} />
-          {nombreBase}
-        </p>
+        <div className={estilos.sesion}>
+          <p className={estilos.contadorBase} title={`Base ${nombreBase}, privacidad ${modoPrivacidad}`}>
+            <IconoBase tamano={14} />
+            {nombreBase}
+          </p>
+          <button
+            type="button"
+            className={estilos.salir}
+            onClick={() => void salir()}
+            title={`${usuario.nombre} · ${usuario.correo}`}
+          >
+            <span className={estilos.salirNombre}>{usuario.nombre.split(' ')[0]}</span>
+            <IconoSalir tamano={15} />
+          </button>
+        </div>
       </header>
 
       <div className={estilos.conversacion} ref={hiloRef}>
