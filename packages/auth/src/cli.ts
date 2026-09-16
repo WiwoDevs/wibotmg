@@ -15,7 +15,7 @@ const AYUDA = `Gestión de acceso a WiBot
 
   npm run usuarios -- crear <correo> "<nombre>"   Da de alta y muestra una contraseña temporal
   npm run usuarios -- listar                      Lista los usuarios y su estado
-  npm run usuarios -- clave <correo>              Genera una contraseña nueva
+  npm run usuarios -- clave <correo> [clave]      Fija esa contraseña, o genera una temporal
   npm run usuarios -- activar <correo>            Reactiva una cuenta
   npm run usuarios -- desactivar <correo>         Bloquea la cuenta y cierra sus sesiones
   npm run usuarios -- auditoria [cantidad]        Últimas consultas registradas
@@ -71,12 +71,22 @@ async function principal(): Promise<void> {
     }
 
     case 'clave': {
-      const [correo] = argumentos;
-      if (!correo) throw new Error('Uso: clave <correo>');
-      const temporal = generarContrasenaTemporal();
-      await cambiarContrasena(correo, temporal, true);
-      stdout.write(`\nContraseña temporal para ${correo}: ${temporal}\n`);
-      stdout.write('Se le pedirá cambiarla la próxima vez que entre.\n\n');
+      const [correo, elegida] = argumentos;
+      if (!correo) throw new Error('Uso: clave <correo> [contraseña]');
+
+      // Una contraseña elegida por la persona es definitiva; una generada por
+      // el administrador es temporal y hay que cambiarla al entrar.
+      const contrasena = elegida ?? generarContrasenaTemporal();
+      const esTemporal = elegida === undefined;
+
+      await cambiarContrasena(correo, contrasena, esTemporal);
+
+      if (esTemporal) {
+        stdout.write(`\nContraseña temporal para ${correo}: ${contrasena}\n`);
+        stdout.write('Se le pedirá cambiarla la próxima vez que entre.\n\n');
+      } else {
+        stdout.write(`\nContraseña de ${correo} actualizada. Puede entrar con ella directamente.\n\n`);
+      }
       break;
     }
 
