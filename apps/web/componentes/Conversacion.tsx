@@ -2,11 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { BloqueDatos, EventoChat, MensajeChat } from '@/lib/tipos';
+import type { BloqueDatos, EventoChat, EventoDiagnosticoCliente, MensajeChat } from '@/lib/tipos';
 import { BloqueDeDatos } from './BloquesDeDatos';
 import { MarcaWiBot } from './MarcaWiBot';
 import { TextoRico } from './TextoRico';
-import { IconoAlerta, IconoBase, IconoDesplegar, IconoDetener, IconoEnviar, IconoSalir } from './Iconos';
+import {
+  IconoAlerta,
+  IconoBase,
+  IconoDesplegar,
+  IconoDetener,
+  IconoEnviar,
+  IconoNuevaConversacion,
+  IconoRegistro,
+  IconoSalir,
+} from './Iconos';
+import { PanelDiagnostico } from './PanelDiagnostico';
 import estilos from './wibot.module.css';
 
 const SUGERENCIAS = [
@@ -41,18 +51,23 @@ interface Props {
   nombreBase: string;
   modoPrivacidad: string;
   usuario: { nombre: string; correo: string };
+  /** Cuando es true aparece el registro técnico. Se activa con WIBOT_DEV=1. */
+  modoDiagnostico: boolean;
 }
 
 /**
  * Conversación completa de WiBot: cabecera, hilo de mensajes y campo de escritura.
  * Consume el flujo NDJSON de /api/chat y va componiendo el turno en curso.
  */
-export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
+export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnostico }: Props) {
   const router = useRouter();
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [borrador, setBorrador] = useState('');
   const [consultaEnCurso, setConsultaEnCurso] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  const [eventosTecnicos, setEventosTecnicos] = useState<EventoDiagnosticoCliente[]>([]);
+  const [panelAbierto, setPanelAbierto] = useState(false);
+  const [confirmandoVaciado, setConfirmandoVaciado] = useState(false);
 
   const hiloRef = useRef<HTMLDivElement>(null);
   const entradaRef = useRef<HTMLTextAreaElement>(null);
@@ -161,6 +176,8 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
                 resultado: evento.resultado,
               };
               actualizarRespuesta((mensaje) => ({ ...mensaje, bloques: [...mensaje.bloques, bloque] }));
+            } else if (evento.tipo === 'diagnostico') {
+              setEventosTecnicos((previos) => [...previos, evento.evento].slice(-200));
             } else if (evento.tipo === 'error') {
               actualizarRespuesta((mensaje) => ({ ...mensaje, error: evento.mensaje }));
             } else if (evento.tipo === 'fin') {
@@ -182,6 +199,19 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
     },
     [ajustarAltura, mensajes, router, trabajando],
   );
+
+  const vaciarConversacion = useCallback((): void => {
+    if (trabajando) return;
+    if (!confirmandoVaciado) {
+      setConfirmandoVaciado(true);
+      window.setTimeout(() => setConfirmandoVaciado(false), 4000);
+      return;
+    }
+    setMensajes([]);
+    setEventosTecnicos([]);
+    setConfirmandoVaciado(false);
+    entradaRef.current?.focus();
+  }, [confirmandoVaciado, trabajando]);
 
   const salir = useCallback(async (): Promise<void> => {
     abortoRef.current?.abort();
@@ -211,6 +241,32 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
             <IconoBase tamano={14} />
             {nombreBase}
           </p>
+          {modoDiagnostico ? (
+            <button
+              type="button"
+              className={`${estilos.accionCabecera} ${panelAbierto ? estilos.accionActiva : ''}`}
+              onClick={() => setPanelAbierto((previo) => !previo)}
+              aria-pressed={panelAbierto}
+              title="Registro técnico"
+            >
+              <IconoRegistro tamano={15} />
+            </button>
+          ) : null}
+          {mensajes.length > 0 ? (
+            <button
+              type="button"
+              className={`${estilos.accionCabecera} ${confirmandoVaciado ? estilos.accionConfirmando : ''}`}
+              onClick={vaciarConversacion}
+              disabled={trabajando}
+              title="Vaciar la conversación"
+            >
+              {confirmandoVaciado ? (
+                <span className={estilos.confirmacion}>¿Vaciar?</span>
+              ) : (
+                <IconoNuevaConversacion tamano={15} />
+              )}
+            </button>
+          ) : null}
           <button
             type="button"
             className={estilos.salir}
@@ -358,6 +414,15 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario }: Props) {
           WiBot solo lee la base. Los datos personales se enmascaran salvo en búsquedas puntuales.
         </p>
       </form>
+
+      {modoDiagnostico ? (
+        <PanelDiagnostico
+          enVivo={eventosTecnicos}
+          abierto={panelAbierto}
+          alCerrar={() => setPanelAbierto(false)}
+          alLimpiar={() => setEventosTecnicos([])}
+        />
+      ) : null}
     </div>
   );
 }

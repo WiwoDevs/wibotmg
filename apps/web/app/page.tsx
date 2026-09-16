@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { obtenerConfiguracion } from '@wibot/core';
 import { Conversacion } from '@/componentes/Conversacion';
+import { esModoDiagnostico } from '@/lib/diagnostico';
 import { obtenerUsuarioActual } from '@/lib/sesion';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,7 @@ export default async function Pagina() {
       nombreBase={db.database}
       modoPrivacidad={modoPrivacidad}
       usuario={{ nombre: usuario.nombre, correo: usuario.correo }}
+      modoDiagnostico={esModoDiagnostico()}
     />
   );
 }

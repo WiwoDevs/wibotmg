@@ -98,3 +98,22 @@ export function IconoSalir(props: PropsIcono) {
     </Base>
   );
 }
+
+/** Hoja con un trazo: empezar una conversación nueva. */
+export function IconoNuevaConversacion(props: PropsIcono) {
+  return (
+    <Base {...props}>
+      <path d="M20 12v6.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4H12" />
+      <path d="M16.5 3.5 20.5 7.5 14 14l-4 1 1-4 5.5-6.5Z" />
+    </Base>
+  );
+}
+
+/** Traza de actividad: abre el registro técnico. */
+export function IconoRegistro(props: PropsIcono) {
+  return (
+    <Base {...props}>
+      <path d="M3 12h3.5l2-5 3 10 2.5-6 1.5 3H21" />
+    </Base>
+  );
+}

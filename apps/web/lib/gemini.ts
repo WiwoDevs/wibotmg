@@ -1,5 +1,6 @@
 import 'server-only';
 import { hoyLocal, herramientasComoJsonSchema, obtenerHerramienta } from '@wibot/core';
+import { esModoDiagnostico, recortar, registrarEvento } from './diagnostico';
 import type { EventoChat, TurnoEnviado } from './tipos';
 
 const MAX_RONDAS_DE_HERRAMIENTAS = 6;
@@ -82,20 +83,63 @@ function construirHerramientas() {
   }));
 }
 
-/** Parsea los argumentos JSON de una llamada a herramienta sin romper el turno. */
-function parsearArgumentos(bruto: string): Record<string, unknown> {
-  if (!bruto || bruto.trim() === '') return {};
+interface ArgumentosParseados {
+  argumentos: Record<string, unknown>;
+  /** Mensaje de error cuando el modelo mandó un JSON que no se puede leer. */
+  problema?: string;
+}
+
+/**
+ * Parsea los argumentos JSON de una llamada a herramienta.
+ * Un JSON roto se informa en vez de convertirse en un objeto vacío: ejecutar
+ * la consulta con los parámetros por defecto daría una cifra que nadie pidió.
+ *
+ * @param bruto cadena JSON tal como la mandó el modelo.
+ */
+function parsearArgumentos(bruto: string): ArgumentosParseados {
+  if (!bruto || bruto.trim() === '') return { argumentos: {} };
   try {
     const valor: unknown = JSON.parse(bruto);
-    return typeof valor === 'object' && valor !== null ? (valor as Record<string, unknown>) : {};
-  } catch {
-    return {};
+    if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
+      return { argumentos: valor as Record<string, unknown> };
+    }
+    return { argumentos: {}, problema: 'Los argumentos no son un objeto JSON.' };
+  } catch (error) {
+    const detalle = error instanceof Error ? error.message : String(error);
+    return { argumentos: {}, problema: `Los argumentos no son JSON válido: ${detalle}` };
   }
+}
+
+interface FragmentoLlamada {
+  index?: number;
+  id?: string;
+  function?: { name?: string; arguments?: string };
+  extra_content?: unknown;
+}
+
+/**
+ * Decide a qué llamada pertenece un fragmento del stream.
+ *
+ * La API de OpenAI numera los fragmentos con `index` y parte los argumentos en
+ * varios trozos. Gemini, en cambio, manda cada llamada completa en su propio
+ * fragmento, con `id` y sin `index`: agruparlas por posición las fusionaría en
+ * una sola llamada con los argumentos de dos herramientas pegados.
+ *
+ * @param fragmento trozo recibido en el delta.
+ * @param ultima clave usada en el fragmento anterior, para las continuaciones
+ *   que no traen ni `index` ni `id`.
+ */
+function claveDeLlamada(fragmento: FragmentoLlamada, ultima: string | undefined): string {
+  if (typeof fragmento.index === 'number') return `indice:${fragmento.index}`;
+  if (fragmento.id) return `id:${fragmento.id}`;
+  return ultima ?? 'indice:0';
 }
 
 interface RondaStream {
   texto: string;
   llamadas: LlamadaHerramienta[];
+  duracionMs: number;
+  mensajesEnviados: number;
 }
 
 /**
@@ -112,6 +156,7 @@ async function ejecutarRonda(
   mensajes: MensajeModelo[],
   alRecibirTexto: (delta: string) => void,
 ): Promise<RondaStream> {
+  const comenzoEn = Date.now();
   let respuesta: Response;
   try {
     respuesta = await fetch(`${configuracion.baseUrl}/chat/completions`, {
@@ -132,6 +177,12 @@ async function ejecutarRonda(
     });
   } catch (error) {
     const detalle = error instanceof Error ? error.message : String(error);
+    registrarEvento({
+      tipo: 'error',
+      titulo: 'No se pudo alcanzar el modelo',
+      duracionMs: Date.now() - comenzoEn,
+      detalle: { url: `${configuracion.baseUrl}/chat/completions`, error: detalle },
+    });
     throw new Error(`No se pudo alcanzar el modelo (${detalle}). Revisá la conexión y volvé a preguntar.`);
   }
 
@@ -143,12 +194,25 @@ async function ejecutarRonda(
         : respuesta.status === 429
           ? 'El modelo está saturado de pedidos. Esperá unos segundos y volvé a preguntar.'
           : `El modelo respondió ${respuesta.status}.`;
+    registrarEvento({
+      tipo: 'error',
+      titulo: `El modelo respondió ${respuesta.status}`,
+      duracionMs: Date.now() - comenzoEn,
+      detalle: {
+        estado: respuesta.status,
+        cuerpo: recortar(detalle, 2000),
+        modelo: configuracion.modelo,
+        mensajesEnviados: mensajes.length,
+        ultimoMensaje: recortar(mensajes[mensajes.length - 1], 600),
+      },
+    });
     throw new Error(`${explicacion} ${detalle.slice(0, 200)}`.trim());
   }
 
   const lector = respuesta.body.getReader();
   const decodificador = new TextDecoder();
-  const acumuladas = new Map<number, LlamadaHerramienta>();
+  const acumuladas = new Map<string, LlamadaHerramienta>();
+  let ultimaClave: string | undefined;
   let texto = '';
   let pendiente = '';
 
@@ -193,10 +257,11 @@ async function ejecutarRonda(
         alRecibirTexto(delta.content);
       }
 
-      for (const [posicion, llamada] of (delta.tool_calls ?? []).entries()) {
-        const indice = llamada.index ?? posicion;
-        const previa = acumuladas.get(indice) ?? { id: '', nombre: '', argumentos: '' };
-        acumuladas.set(indice, {
+      for (const llamada of delta.tool_calls ?? []) {
+        const clave = claveDeLlamada(llamada, ultimaClave);
+        ultimaClave = clave;
+        const previa = acumuladas.get(clave) ?? { id: '', nombre: '', argumentos: '' };
+        acumuladas.set(clave, {
           id: llamada.id ?? previa.id,
           nombre: llamada.function?.name ?? previa.nombre,
           argumentos: previa.argumentos + (llamada.function?.arguments ?? ''),
@@ -206,7 +271,32 @@ async function ejecutarRonda(
     }
   }
 
-  return { texto, llamadas: [...acumuladas.values()].filter((llamada) => llamada.nombre !== '') };
+  const llamadas = [...acumuladas.values()].filter((llamada) => llamada.nombre !== '');
+
+  return { texto, llamadas, duracionMs: Date.now() - comenzoEn, mensajesEnviados: mensajes.length };
+}
+
+/**
+ * Anota un evento de diagnóstico y, si el modo está activo, lo manda también
+ * al navegador para que aparezca en el panel en vivo.
+ */
+function* emitirDiagnostico(
+  evento: Parameters<typeof registrarEvento>[0],
+): Generator<EventoChat> {
+  const registrado = registrarEvento(evento);
+  if (esModoDiagnostico()) {
+    yield {
+      tipo: 'diagnostico',
+      evento: {
+        id: registrado.id,
+        tipo: registrado.tipo,
+        titulo: registrado.titulo,
+        ocurridoEn: registrado.ocurridoEn,
+        ...(registrado.duracionMs === undefined ? {} : { duracionMs: registrado.duracionMs }),
+        ...(registrado.detalle === undefined ? {} : { detalle: registrado.detalle }),
+      },
+    };
+  }
 }
 
 /**
@@ -234,11 +324,46 @@ export async function* conversar(
 
   for (let ronda = 0; ronda < MAX_RONDAS_DE_HERRAMIENTAS; ronda += 1) {
     const pendientes: EventoChat[] = [];
-    const ejecutada = await ejecutarRonda(configuracion, mensajes, (delta) => {
-      pendientes.push({ tipo: 'texto', delta });
-    });
+    let ejecutada: RondaStream;
+    try {
+      ejecutada = await ejecutarRonda(configuracion, mensajes, (delta) => {
+        pendientes.push({ tipo: 'texto', delta });
+      });
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : String(error);
+      yield* emitirDiagnostico({
+        tipo: 'error',
+        titulo: `La ronda ${ronda + 1} falló`,
+        detalle: { error: mensaje, mensajesEnviados: mensajes.length },
+      });
+      throw error;
+    }
 
     for (const evento of pendientes) yield evento;
+
+    const sinFirma = ejecutada.llamadas.filter((llamada) => !llamada.extra).map((llamada) => llamada.nombre);
+    yield* emitirDiagnostico({
+      tipo: 'ronda',
+      titulo:
+        ejecutada.llamadas.length === 0
+          ? `Ronda ${ronda + 1}: el modelo respondió con texto`
+          : `Ronda ${ronda + 1}: el modelo pidió ${ejecutada.llamadas.length} consulta${
+              ejecutada.llamadas.length === 1 ? '' : 's'
+            }`,
+      duracionMs: ejecutada.duracionMs,
+      detalle: {
+        mensajesEnviados: ejecutada.mensajesEnviados,
+        caracteresDeTexto: ejecutada.texto.length,
+        llamadas: ejecutada.llamadas.map((llamada) => ({
+          nombre: llamada.nombre,
+          argumentos: llamada.argumentos,
+          tieneFirma: Boolean(llamada.extra),
+        })),
+        ...(sinFirma.length > 0
+          ? { advertencia: `Sin thought_signature: ${sinFirma.join(', ')}. Gemini rechazará la próxima ronda.` }
+          : {}),
+      },
+    });
 
     if (ejecutada.llamadas.length === 0) {
       if (ejecutada.texto.trim() === '') {
@@ -263,7 +388,22 @@ export async function* conversar(
     });
 
     for (const llamada of ejecutada.llamadas) {
-      const argumentos = parsearArgumentos(llamada.argumentos);
+      const { argumentos, problema } = parsearArgumentos(llamada.argumentos);
+
+      if (problema) {
+        yield* emitirDiagnostico({
+          tipo: 'error',
+          titulo: `Argumentos ilegibles en ${llamada.nombre}`,
+          detalle: { crudo: recortar(llamada.argumentos), problema },
+        });
+        mensajes.push({
+          role: 'tool',
+          tool_call_id: llamada.id,
+          content: `${problema} Volvé a llamar la herramienta con un JSON válido.`,
+        });
+        continue;
+      }
+
       yield { tipo: 'consultando', herramienta: llamada.nombre, argumentos };
 
       const herramienta = obtenerHerramienta(llamada.nombre);
@@ -276,9 +416,16 @@ export async function* conversar(
         continue;
       }
 
+      const inicioHerramienta = Date.now();
       try {
         const resultado = await herramienta.ejecutar(argumentos);
         yield { tipo: 'datos', herramienta: llamada.nombre, formato: herramienta.formato, resultado };
+        yield* emitirDiagnostico({
+          tipo: 'herramienta',
+          titulo: `${llamada.nombre} respondió`,
+          duracionMs: Date.now() - inicioHerramienta,
+          detalle: { argumentos, resultado: recortar(resultado, 800) },
+        });
         mensajes.push({
           role: 'tool',
           tool_call_id: llamada.id,
@@ -286,6 +433,12 @@ export async function* conversar(
         });
       } catch (error) {
         const mensaje = error instanceof Error ? error.message : String(error);
+        yield* emitirDiagnostico({
+          tipo: 'error',
+          titulo: `${llamada.nombre} falló`,
+          duracionMs: Date.now() - inicioHerramienta,
+          detalle: { argumentos, error: mensaje },
+        });
         mensajes.push({ role: 'tool', tool_call_id: llamada.id, content: `Error: ${mensaje}` });
       }
     }

@@ -93,6 +93,18 @@ npm run build -w @wibot/web && npm run start -w @wibot/web
 
 La clave de Gemini vive solo en el servidor: el navegador nunca la ve.
 
+## Modo diagnóstico
+
+Con `WIBOT_DEV=1` aparece un registro técnico: cada ronda contra el modelo, cada consulta a la
+base con su duración, y el cuerpo crudo de los errores. Se abre con el botón del pulso en la
+cabecera del chat, y también se puede leer entero en `GET /api/diagnostico`.
+
+Apagado (`WIBOT_DEV=0`, el valor por defecto) no se guarda nada y la ruta responde 404. Dejalo
+apagado en producción: expone argumentos de consulta y respuestas del modelo.
+
+El botón de la hoja, al lado, vacía la conversación en curso. Pide confirmación con un segundo
+clic y no toca la auditoría: lo que se preguntó queda registrado igual.
+
 ## Servidor MCP
 
 Con `.mcp.json` en la raíz, Claude Code lo detecta al abrir el proyecto. Para registrarlo a mano:

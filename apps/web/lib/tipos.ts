@@ -30,10 +30,21 @@ export interface ConsultaRealizada {
 /** Eventos que el servidor emite en la respuesta NDJSON de /api/chat. */
 export type EventoChat =
   | { tipo: 'consultando'; herramienta: string; argumentos: Record<string, unknown> }
+  | { tipo: 'diagnostico'; evento: EventoDiagnosticoCliente }
   | { tipo: 'datos'; herramienta: string; formato: FormatoResultado; resultado: unknown }
   | { tipo: 'texto'; delta: string }
   | { tipo: 'error'; mensaje: string }
   | { tipo: 'fin' };
+
+/** Evento técnico que el servidor manda al panel de diagnóstico. */
+export interface EventoDiagnosticoCliente {
+  id: string;
+  tipo: 'ronda' | 'herramienta' | 'error' | 'turno';
+  titulo: string;
+  duracionMs?: number;
+  detalle?: unknown;
+  ocurridoEn: string;
+}
 
 /** Turno enviado al servidor: solo lo imprescindible para reconstruir el contexto. */
 export interface TurnoEnviado {
