@@ -1,0 +1,8 @@
+node_modules/
+.data/
+.next/
+dist/
+.env
+.env.local
+*.log
+*.sql.gz

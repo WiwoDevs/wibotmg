@@ -1,0 +1,693 @@
+/* ---------------------------------------------------------------- estructura */
+
+.aplicacion {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+  max-width: var(--ancho-columna);
+  margin-inline: auto;
+  border-inline: 1px solid var(--linea);
+  background: var(--lienzo);
+}
+
+@media (max-width: 720px) {
+  .aplicacion {
+    border-inline: none;
+  }
+}
+
+/* ---------------------------------------------------------------- cabecera */
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--linea);
+  background: color-mix(in srgb, var(--superficie) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.identidad {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.bajada {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  background: var(--senal-tenue);
+  color: var(--senal);
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.estadoInactivo {
+  background: rgba(143, 160, 152, 0.12);
+  color: var(--texto-suave);
+}
+
+.contadorBase {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--texto-suave);
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- conversación */
+
+.conversacion {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.turno {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 88%;
+  animation: entrar 240ms var(--curva) both;
+}
+
+.turnoPersona {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.turnoWibot {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.burbuja {
+  max-width: 65ch;
+  padding: 11px 14px;
+  border-radius: var(--radio-burbuja);
+  font-size: 15px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.burbujaWibot {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-bottom-left-radius: var(--radio-chico);
+}
+
+.burbujaPersona {
+  background: var(--emisor);
+  color: var(--emisor-texto);
+  border-bottom-right-radius: var(--radio-chico);
+}
+
+.hora {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+  padding-inline: 6px;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  translate: 0 2px;
+  background: var(--senal);
+  animation: latir 1s steps(2, start) infinite;
+}
+
+@keyframes latir {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- actividad */
+
+.actividad {
+  width: 100%;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie);
+  overflow: hidden;
+}
+
+.actividadFila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.actividadFila svg {
+  color: var(--senal);
+  flex: none;
+}
+
+.actividadNombre {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--texto);
+}
+
+.barra {
+  height: 2px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.barra::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 36%;
+  background: var(--senal);
+  animation: recorrer 1.3s var(--curva) infinite;
+}
+
+@keyframes recorrer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(380%);
+  }
+}
+
+/* ---------------------------------------------------------------- bloques de datos */
+
+.bloque {
+  width: 100%;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie-alta);
+  overflow: hidden;
+}
+
+.bloqueEncabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--linea);
+}
+
+.bloqueTitulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bloquePeriodo {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.lecturas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--linea);
+}
+
+.lectura {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--superficie-alta);
+}
+
+.lecturaPrincipal {
+  grid-column: 1 / -1;
+}
+
+.lecturaEtiqueta {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.lecturaValor {
+  white-space: nowrap;
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.lecturaPrincipal .lecturaValor {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--senal);
+}
+
+/* ---------------------------------------------------------------- ranking */
+
+.filas {
+  display: flex;
+  flex-direction: column;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.filaSimple {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.fila + .fila {
+  border-top: 1px solid var(--linea);
+}
+
+.posicion {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+}
+
+.etiquetaFila {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.cifraFila {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.medidor {
+  grid-column: 2 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.medidorRelleno {
+  height: 100%;
+  background: color-mix(in srgb, var(--senal) 55%, transparent);
+  border-radius: inherit;
+}
+
+/* El primer lugar del ranking es el único que va al verde pleno. */
+.fila:first-child .medidorRelleno {
+  background: var(--senal);
+}
+
+/* ---------------------------------------------------------------- serie */
+
+.serie {
+  padding: 12px;
+}
+
+.serieGrafico {
+  width: 100%;
+  height: 96px;
+  display: block;
+  overflow: visible;
+}
+
+.serieBarra {
+  fill: var(--senal);
+  opacity: 0.85;
+}
+
+.serieEje {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- tabla */
+
+.envoltorioTabla {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  font-size: 13px;
+}
+
+.tabla th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  padding: 8px 12px;
+  background: var(--superficie-alta);
+  border-bottom: 1px solid var(--linea);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--linea);
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabla tr:last-child td {
+  border-bottom: none;
+}
+
+.celdaTecnica {
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.celdaNumerica {
+  text-align: right;
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.pieBloque {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--linea);
+  font-size: 11px;
+  color: var(--alerta);
+}
+
+.pieBloque svg {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- consultas */
+
+.consultas {
+  width: 100%;
+}
+
+.consultasResumen {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radio-chico);
+  color: var(--texto-suave);
+  font-size: 11px;
+  list-style: none;
+  cursor: pointer;
+  transition-property: color, background-color;
+  transition-duration: 150ms;
+}
+
+.consultasResumen::-webkit-details-marker {
+  display: none;
+}
+
+.consultasResumen:hover {
+  color: var(--texto);
+  background: var(--superficie);
+}
+
+.consultas[open] .consultasChevron {
+  rotate: 180deg;
+}
+
+.consultasChevron {
+  transition: rotate 150ms var(--curva);
+}
+
+.consultaDetalle {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  font-family: var(--fuente-datos), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--texto-suave);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------------- error */
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--peligro) 35%, var(--linea));
+  border-radius: var(--radio-bloque);
+  background: color-mix(in srgb, var(--peligro) 8%, var(--superficie));
+  color: var(--texto);
+  font-size: 13px;
+}
+
+.error svg {
+  color: var(--peligro);
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------------------------------------------------------------- apertura */
+
+.apertura {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 4px 8px;
+}
+
+.aperturaTitulo {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.aperturaTexto {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--texto-suave);
+  font-size: 15px;
+}
+
+.sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.sugerencia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--superficie);
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  color: var(--texto);
+  transition-property: background-color, color;
+  transition-duration: 150ms;
+}
+
+.sugerencia:hover {
+  background: var(--superficie-alta);
+}
+
+.sugerencia:active {
+  scale: 0.99;
+}
+
+.sugerenciaFlecha {
+  color: var(--texto-suave);
+  flex: none;
+  rotate: 90deg;
+}
+
+/* ---------------------------------------------------------------- campo */
+
+.campo {
+  border-top: 1px solid var(--linea);
+  background: color-mix(in srgb, var(--superficie) 88%, transparent);
+  backdrop-filter: blur(12px);
+  padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.campoCaja {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--linea);
+  border-radius: 22px;
+  background: var(--superficie-alta);
+  transition-property: border-color;
+  transition-duration: 150ms;
+}
+
+.campoCaja:focus-within {
+  border-color: color-mix(in srgb, var(--senal) 45%, var(--linea));
+}
+
+.entrada {
+  flex: 1;
+  min-width: 0;
+  max-height: 140px;
+  padding: 7px 0;
+  border: none;
+  background: none;
+  color: var(--texto);
+  font: inherit;
+  resize: none;
+  caret-color: var(--senal);
+}
+
+.entrada::placeholder {
+  color: var(--texto-suave);
+}
+
+.entrada:focus {
+  outline: none;
+}
+
+.enviar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--senal);
+  color: #04160c;
+  transition-property: scale, opacity, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: var(--curva);
+}
+
+.enviar:active {
+  scale: 0.96;
+}
+
+.enviar:disabled {
+  background: var(--linea);
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+.enviarDetener {
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  color: var(--texto);
+}
+
+.aviso {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.fuerte {
+  font-weight: 650;
+  color: var(--texto);
+}
+
+.burbujaPersona .fuerte {
+  color: inherit;
+}
+
+@media (max-width: 480px) {
+  .contadorBase {
+    display: none;
+  }
+}

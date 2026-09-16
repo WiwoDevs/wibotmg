@@ -1,0 +1,100 @@
+/* Sistema visual de WiBot. Ver DESIGN.md en la raíz del repositorio. */
+
+:root {
+  --lienzo: #070b09;
+  --superficie: #0e1512;
+  --superficie-alta: #16201b;
+  --linea: #1f2c26;
+  --texto: #e4ede7;
+  --texto-suave: #8fa098;
+
+  --senal: #2fe87c;
+  --senal-tenue: rgba(47, 232, 124, 0.14);
+  --emisor: #4b49f5;
+  --emisor-texto: #f1f1ff;
+  --alerta: #ffb547;
+  --peligro: #ff6b6b;
+
+  --radio-burbuja: 20px;
+  --radio-bloque: 12px;
+  --radio-chico: 8px;
+
+  --curva: cubic-bezier(0.2, 0, 0, 1);
+
+  --ancho-columna: 680px;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--lienzo);
+  color: var(--texto);
+  font-family: var(--fuente-interfaz), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--senal-tenue);
+  color: var(--texto);
+}
+
+:focus-visible {
+  outline: 2px solid var(--senal);
+  outline-offset: 2px;
+  border-radius: var(--radio-chico);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--linea) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--linea);
+  border: 3px solid var(--lienzo);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #2b3b33;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

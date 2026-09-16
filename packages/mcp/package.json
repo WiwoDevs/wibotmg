@@ -1,0 +1,21 @@
+{
+  "name": "@wibot/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor MCP de WiBot: consultas de solo lectura sobre la base de cupones MG Contact",
+  "type": "module",
+  "bin": { "wibot-mcp": "./dist/servidor.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/servidor.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@wibot/core": "*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}

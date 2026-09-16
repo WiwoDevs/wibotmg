@@ -1,0 +1,24 @@
+{
+  "name": "wibot",
+  "private": true,
+  "version": "0.1.0",
+  "description": "WiBot - inteligencia ejecutiva sobre la base de datos de cupones MG Contact",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:start": "bash scripts/db-local.sh start",
+    "db:stop": "bash scripts/db-local.sh stop",
+    "db:import": "bash scripts/db-local.sh import",
+    "build": "npm run build -w @wibot/core && npm run build -w @wibot/mcp",
+    "mcp": "npm run start -w @wibot/mcp",
+    "dev": "npm run dev -w @wibot/web"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

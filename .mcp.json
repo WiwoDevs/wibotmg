@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "wibot": {
+      "command": "node",
+      "args": ["packages/mcp/dist/servidor.js"],
+      "cwd": "."
+    }
+  }
+}
