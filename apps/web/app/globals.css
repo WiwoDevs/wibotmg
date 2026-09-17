@@ -26,11 +26,12 @@
   --alerta: #9c6417;
   --peligro: #b3261e;
 
-  /* Escala de temperatura de leads, del más caliente al más frío. */
-  --calor-4: #c3463d;
+  /* Escala de temperatura de leads, del más caliente al más frío. Es ordinal,
+     así que va de un polo cálido a uno frío; validada para daltonismo. */
+  --calor-4: #b3261e;
   --calor-3: #d88719;
-  --calor-2: #4242ff;
-  --calor-1: #8b8d85;
+  --calor-2: #7d93e8;
+  --calor-1: #4242ff;
 
   --radio-burbuja: 24px;
   --radio-bloque: 16px;
