@@ -1,0 +1,345 @@
+.pagina {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--lienzo);
+}
+
+.conChat {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* El chat necesita unos 600px para que su cabecera entre sin recortarse, así
+   que solo se pone al lado cuando sobra ancho; debajo de eso van las pestañas. */
+@media (min-width: 1280px) {
+  .conChat {
+    grid-template-columns: minmax(0, 1fr) 600px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .conChat {
+    grid-template-columns: minmax(0, 1fr) 680px;
+  }
+}
+
+.columnaTablero {
+  min-width: 0;
+  padding: 20px 18px calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+}
+
+@media (min-width: 1280px) {
+  .columnaTablero {
+    max-height: 100dvh;
+    padding-bottom: 28px;
+  }
+}
+
+.columnaChat {
+  min-width: 0;
+  border-left: 1px solid var(--linea);
+  background: var(--superficie);
+}
+
+@media (max-width: 1279px) {
+  .columnaChat {
+    position: fixed;
+    inset: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    border-left: none;
+  }
+}
+
+.ocultoEnMovil {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .ocultoEnMovil {
+    display: block;
+  }
+}
+
+/* ------------------------------------------------------------------ cabecera */
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.identidad {
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.bajada {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.etiquetaSelector {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.select {
+  padding: 7px 10px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 13px;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--senal);
+  outline-offset: 2px;
+}
+
+.interruptor {
+  padding: 7px 13px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 13px;
+  transition-property: color, border-color, background-color;
+  transition-duration: 150ms;
+}
+
+.interruptor:hover {
+  color: var(--texto);
+}
+
+.interruptorActivo {
+  border-color: var(--senal);
+  color: var(--senal);
+  background: var(--senal-tenue);
+}
+
+/* -------------------------------------------------------------------- avisos */
+
+.error,
+.aviso,
+.cargando {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie);
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.error {
+  border-color: color-mix(in srgb, var(--peligro) 40%, var(--linea));
+  color: var(--peligro);
+}
+
+.aviso svg {
+  color: var(--alerta);
+  flex: none;
+}
+
+.aviso code {
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--superficie-alta);
+}
+
+/* ------------------------------------------------------------------- rejilla */
+
+.rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  transition: opacity 180ms var(--curva);
+}
+
+.rejillaCargando {
+  opacity: 0.55;
+}
+
+@media (min-width: 720px) {
+  .rejilla {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1900px) {
+  .rejilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.indicadores {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.indicador {
+  padding: 16px 18px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie);
+  box-shadow: var(--sombra-1);
+}
+
+.etiquetaIndicador {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.valorIndicador {
+  margin: 6px 0 0;
+  font-size: 34px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.sufijo {
+  font-size: 18px;
+  font-weight: 600;
+  margin-left: 2px;
+  color: var(--texto-suave);
+}
+
+.apoyoIndicador {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------------------ tarjetas */
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  background: var(--superficie);
+  box-shadow: var(--sombra-1);
+}
+
+.tarjetaAncha {
+  grid-column: 1 / -1;
+}
+
+.cabeceraTarjeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tituloTarjeta {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.apoyoTarjeta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.botonConsultar {
+  flex: none;
+  padding: 6px 12px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 12px;
+  transition-property: color, border-color, background-color, scale;
+  transition-duration: 150ms;
+}
+
+.botonConsultar:hover {
+  color: var(--senal);
+  border-color: var(--senal);
+  background: var(--senal-tenue);
+}
+
+.botonConsultar:active {
+  scale: 0.96;
+}
+
+/* ------------------------------------------------------------ pestañas móvil */
+
+.pestanasMovil {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 35;
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--linea);
+  background: color-mix(in srgb, var(--superficie) 92%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+@media (min-width: 1280px) {
+  .pestanasMovil {
+    display: none;
+  }
+}
+
+.pestana,
+.pestanaActiva {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pestanaActiva {
+  border-color: var(--senal);
+  background: var(--senal-tenue);
+  color: var(--senal);
+}

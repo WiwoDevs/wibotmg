@@ -73,13 +73,24 @@ interface Props {
   usuario: { nombre: string; correo: string };
   /** Cuando es true aparece el registro técnico. Se activa con WIBOT_DEV=1. */
   modoDiagnostico: boolean;
+  /**
+   * Pregunta que llega desde fuera, por ejemplo al pedir desde el tablero que
+   * WiBot interprete un gráfico. Cada valor nuevo dispara un turno.
+   */
+  preguntaInicial?: string;
 }
 
 /**
  * Conversación completa de WiWO Me: cabecera, hilo de mensajes y campo de escritura.
  * Consume el flujo NDJSON de /api/chat y va componiendo el turno en curso.
  */
-export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnostico }: Props) {
+export function Conversacion({
+  nombreBase,
+  modoPrivacidad,
+  usuario,
+  modoDiagnostico,
+  preguntaInicial,
+}: Props) {
   const router = useRouter();
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [borrador, setBorrador] = useState('');
@@ -232,6 +243,18 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
     setConfirmandoVaciado(false);
     entradaRef.current?.focus();
   }, [confirmandoVaciado, trabajando]);
+
+  // Una pregunta que llega desde el tablero se envía sola. La referencia evita
+  // repetir el turno cuando el componente se vuelve a renderizar con el mismo
+  // texto, cosa que ocurre en cada fragmento de la respuesta.
+  const ultimaPreguntaExterna = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const pregunta = preguntaInicial?.trim();
+    if (!pregunta || pregunta === ultimaPreguntaExterna.current) return;
+    ultimaPreguntaExterna.current = pregunta;
+    void enviar(pregunta);
+  }, [enviar, preguntaInicial]);
 
   const salir = useCallback(async (): Promise<void> => {
     abortoRef.current?.abort();
