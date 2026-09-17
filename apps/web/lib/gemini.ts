@@ -318,27 +318,49 @@ function recortarResultado(resultado: unknown): string {
 }
 
 /**
- * Devuelve una copia del historial sin las firmas de razonamiento y con los
- * resultados de herramientas recortados. Es el plan B cuando el modelo rechaza
- * la petición: se reintenta con un contexto más simple antes de darse por vencido.
+ * Reescribe el historial sin ninguna llamada a herramienta: los resultados ya
+ * obtenidos pasan a ser texto dentro de un mensaje de la persona.
+ *
+ * Es el plan B cuando el modelo rechaza la petición. Quitar solo las firmas de
+ * razonamiento no alcanza: Gemini exige una firma en cada llamada que se le
+ * devuelve y rechaza igual las que no la traen. Sin llamadas en el historial,
+ * esa exigencia desaparece y el modelo puede responder con lo que ya se consultó.
  */
 function sanearHistorial(mensajes: MensajeModelo[]): MensajeModelo[] {
-  return mensajes.map((mensaje) => {
-    if (mensaje.role === 'tool' && typeof mensaje.content === 'string') {
-      return {
-        ...mensaje,
-        content:
-          mensaje.content.length > 4000 ? `${mensaje.content.slice(0, 4000)}… [recortado]` : mensaje.content,
-      };
-    }
+  const saneados: MensajeModelo[] = [];
+  const resultados: string[] = [];
+  const nombrePorLlamada = new Map<string, string>();
+
+  for (const mensaje of mensajes) {
     if (mensaje.tool_calls) {
-      return {
-        ...mensaje,
-        tool_calls: mensaje.tool_calls.map(({ extra_content: _descartada, ...resto }) => resto),
-      };
+      for (const llamada of mensaje.tool_calls) {
+        nombrePorLlamada.set(llamada.id, llamada.function.name);
+      }
+      if (typeof mensaje.content === 'string' && mensaje.content.trim() !== '') {
+        saneados.push({ role: 'assistant', content: mensaje.content });
+      }
+      continue;
     }
-    return mensaje;
-  });
+
+    if (mensaje.role === 'tool') {
+      const nombre = nombrePorLlamada.get(mensaje.tool_call_id ?? '') ?? 'consulta';
+      const contenido = typeof mensaje.content === 'string' ? mensaje.content : '';
+      const recortado = contenido.length > 6000 ? `${contenido.slice(0, 6000)}… [recortado]` : contenido;
+      resultados.push(`Resultado de ${nombre}: ${recortado}`);
+      continue;
+    }
+
+    saneados.push(mensaje);
+  }
+
+  if (resultados.length > 0) {
+    saneados.push({
+      role: 'user',
+      content: `Estos son los datos que ya se consultaron en la base. Usalos para responder:\n\n${resultados.join('\n\n')}`,
+    });
+  }
+
+  return saneados;
 }
 
 /**
@@ -460,16 +482,22 @@ export async function* conversar(
       pendientes = [];
       const saneados = sanearHistorial(mensajes);
       try {
-        ejecutada = await ejecutarRonda(configuracion, saneados, (delta) => {
-          pendientes.push({ tipo: 'texto', delta });
-        });
-        mensajes.length = 0;
-        mensajes.push(...saneados);
+        ejecutada = await ejecutarRonda(
+          configuracion,
+          saneados,
+          (delta) => {
+            pendientes.push({ tipo: 'texto', delta });
+          },
+          true,
+        );
         yield* emitirDiagnostico({
           tipo: 'ronda',
-          titulo: `La ronda ${ronda + 1} se recuperó con el historial simplificado`,
-          detalle: { mensajesEnviados: saneados.length },
+          titulo: `La ronda ${ronda + 1} se recuperó sin llamadas a herramientas`,
+          detalle: { mensajesEnviados: saneados.length, caracteresDeTexto: ejecutada.texto.length },
         });
+        for (const evento of pendientes) yield evento;
+        yield { tipo: 'fin' };
+        return;
       } catch (segundoError) {
         const detalle = segundoError instanceof Error ? segundoError.message : String(segundoError);
         yield* emitirDiagnostico({
@@ -477,7 +505,13 @@ export async function* conversar(
           titulo: `El reintento de la ronda ${ronda + 1} también falló`,
           detalle: { error: detalle },
         });
-        yield* cerrarConLoReunido(configuracion, saneados);
+        yield {
+          tipo: 'error',
+          mensaje:
+            segundoError instanceof ErrorDelModelo
+              ? segundoError.message
+              : 'WiBot no pudo completar esta consulta. Probá reformularla más corta.',
+        };
         yield { tipo: 'fin' };
         return;
       }
