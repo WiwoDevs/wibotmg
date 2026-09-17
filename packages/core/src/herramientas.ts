@@ -113,6 +113,12 @@ export interface Herramienta {
   /** Shape de zod con los parámetros. Vacío si la herramienta no recibe nada. */
   esquema: z.ZodRawShape;
   formato: FormatoResultado;
+  /**
+   * true cuando la herramienta sirve para inspeccionar la base desde un cliente
+   * MCP, pero no debe ofrecerse en el chat: son respuestas técnicas que no
+   * responden preguntas de negocio y desvían la conversación.
+   */
+  soloMcp?: boolean;
   ejecutar: (argumentos: Argumentos) => Promise<unknown>;
 }
 
@@ -264,6 +270,7 @@ export const HERRAMIENTAS: Herramienta[] = [
   },
   {
     nombre: 'listar_tablas',
+    soloMcp: true,
     titulo: 'Listar tablas',
     descripcion:
       'Tablas disponibles en la base con su volumen aproximado. La tabla de negocio es coupon_file_data; el resto es infraestructura de WordPress y WooCommerce.',
@@ -273,6 +280,7 @@ export const HERRAMIENTAS: Herramienta[] = [
   },
   {
     nombre: 'describir_tabla',
+    soloMcp: true,
     titulo: 'Describir una tabla',
     descripcion: 'Columnas, tipos y claves de cualquier tabla de la base.',
     esquema: { tabla: z.string().min(2).describe('Nombre de la tabla, con o sin prefijo.') },
@@ -457,7 +465,7 @@ export interface HerramientaJsonSchema {
  * la API de chat compatible con OpenAI (Gemini incluido).
  */
 export function herramientasComoJsonSchema(): HerramientaJsonSchema[] {
-  return HERRAMIENTAS.map((herramienta) => {
+  return HERRAMIENTAS.filter((herramienta) => herramienta.soloMcp !== true).map((herramienta) => {
     const esquema = zodToJsonSchema(z.object(herramienta.esquema), { target: 'openApi3' }) as Record<string, unknown>;
     delete esquema.$schema;
     return {

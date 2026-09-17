@@ -4,6 +4,23 @@ import { esModoDiagnostico, recortar, registrarEvento } from './diagnostico';
 import type { EventoChat, TurnoEnviado } from './tipos';
 
 /** Rondas de consulta permitidas antes de exigirle al modelo que cierre. */
+/**
+ * Error de la conversación con el modelo. Lleva un mensaje apto para mostrarle
+ * a cualquiera; el cuerpo crudo del proveedor queda solo en el diagnóstico.
+ */
+class ErrorDelModelo extends Error {
+  readonly estado: number | undefined;
+
+  constructor(mensaje: string, estado?: number) {
+    super(mensaje);
+    this.name = 'ErrorDelModelo';
+    this.estado = estado;
+  }
+}
+
+/** Tamaño máximo del resultado de una herramienta que se le devuelve al modelo. */
+const MAX_CARACTERES_RESULTADO = 24000;
+
 const MAX_RONDAS_DE_HERRAMIENTAS = Number.parseInt(process.env.WIBOT_MAX_RONDAS ?? '', 10) || 12;
 
 interface LlamadaHerramienta {
@@ -64,7 +81,7 @@ Cómo trabajás:
 - Elegí la fuente por el tema: cupones para volumen de servicio, encuestas para satisfacción, leads para lo comercial, llamadas para el contact center.
 - Antes de filtrar por un nombre que no estás seguro de que exista, confirmalo con valores_dimension.
 - consulta_sql es el último recurso; indicá la fuente y mirá antes esquema_cupones o esquema_gestion.
-- No uses listar_tablas ni describir_tabla salvo que alguien pregunte por la estructura de la base: son tablas de WordPress que no aportan al negocio y gastan pasos.
+- Nunca describas la estructura de la base ni nombres de tablas o columnas: quien pregunta es gerencia y espera cifras de negocio, no esquemas.
 - Si te piden varios bloques en una sola pregunta, pedí todas las consultas que puedas en la misma tanda en vez de una por vez.
 - Si una pregunta necesita varias consultas, hacelas todas antes de responder.
 - El NPS es un índice de -100 a 100, no un porcentaje: decí "NPS 61", nunca "61%".
@@ -194,17 +211,19 @@ async function ejecutarRonda(
       duracionMs: Date.now() - comenzoEn,
       detalle: { url: `${configuracion.baseUrl}/chat/completions`, error: detalle },
     });
-    throw new Error(`No se pudo alcanzar el modelo (${detalle}). Revisá la conexión y volvé a preguntar.`);
+    throw new ErrorDelModelo('WiBot no pudo conectarse con el modelo. Revisá la conexión y volvé a preguntar.');
   }
 
   if (!respuesta.ok || !respuesta.body) {
     const detalle = await respuesta.text().catch(() => '');
     const explicacion =
       respuesta.status === 401 || respuesta.status === 403
-        ? 'La clave del modelo fue rechazada.'
+        ? 'WiBot no pudo autenticarse contra el modelo. Avisale al equipo técnico.'
         : respuesta.status === 429
-          ? 'El modelo está saturado de pedidos. Esperá unos segundos y volvé a preguntar.'
-          : `El modelo respondió ${respuesta.status}.`;
+          ? 'El modelo está recibiendo demasiados pedidos. Esperá unos segundos y volvé a preguntar.'
+          : respuesta.status >= 500
+            ? 'El modelo no está disponible en este momento. Volvé a intentar en un minuto.'
+            : 'WiBot no pudo completar esta consulta. Probá reformularla más corta; si vuelve a pasar, avisale al equipo técnico.';
     registrarEvento({
       tipo: 'error',
       titulo: `El modelo respondió ${respuesta.status}`,
@@ -217,7 +236,7 @@ async function ejecutarRonda(
         ultimoMensaje: recortar(mensajes[mensajes.length - 1], 600),
       },
     });
-    throw new Error(`${explicacion} ${detalle.slice(0, 200)}`.trim());
+    throw new ErrorDelModelo(explicacion, respuesta.status);
   }
 
   const lector = respuesta.body.getReader();
@@ -288,6 +307,41 @@ async function ejecutarRonda(
 }
 
 /**
+ * Serializa el resultado de una herramienta para devolvérselo al modelo,
+ * recortándolo si es enorme. El bloque de datos que ve la persona siempre
+ * lleva el resultado completo: el recorte es solo para la petición.
+ */
+function recortarResultado(resultado: unknown): string {
+  const texto = JSON.stringify(resultado) ?? 'null';
+  if (texto.length <= MAX_CARACTERES_RESULTADO) return texto;
+  return `${texto.slice(0, MAX_CARACTERES_RESULTADO)}… [resultado recortado; pedí un corte más acotado si necesitás el resto]`;
+}
+
+/**
+ * Devuelve una copia del historial sin las firmas de razonamiento y con los
+ * resultados de herramientas recortados. Es el plan B cuando el modelo rechaza
+ * la petición: se reintenta con un contexto más simple antes de darse por vencido.
+ */
+function sanearHistorial(mensajes: MensajeModelo[]): MensajeModelo[] {
+  return mensajes.map((mensaje) => {
+    if (mensaje.role === 'tool' && typeof mensaje.content === 'string') {
+      return {
+        ...mensaje,
+        content:
+          mensaje.content.length > 4000 ? `${mensaje.content.slice(0, 4000)}… [recortado]` : mensaje.content,
+      };
+    }
+    if (mensaje.tool_calls) {
+      return {
+        ...mensaje,
+        tool_calls: mensaje.tool_calls.map(({ extra_content: _descartada, ...resto }) => resto),
+      };
+    }
+    return mensaje;
+  });
+}
+
+/**
  * Anota un evento de diagnóstico y, si el modo está activo, lo manda también
  * al navegador para que aparezca en el panel en vivo.
  */
@@ -307,6 +361,55 @@ function* emitirDiagnostico(
         ...(registrado.detalle === undefined ? {} : { detalle: registrado.detalle }),
       },
     };
+  }
+}
+
+/**
+ * Pide una respuesta final sin ofrecer herramientas, para que el modelo redacte
+ * con los datos que ya reunió. Es la salida digna cuando se agotan las rondas o
+ * cuando el modelo rechaza seguir: la persona igual recibe lo consultado.
+ *
+ * @param configuracion credenciales y modelo.
+ * @param mensajes historial con los resultados ya obtenidos.
+ */
+async function* cerrarConLoReunido(
+  configuracion: ConfiguracionModelo,
+  mensajes: MensajeModelo[],
+): AsyncGenerator<EventoChat> {
+  const historial: MensajeModelo[] = [
+    ...mensajes,
+    {
+      role: 'user',
+      content:
+        'Ya no podés hacer más consultas. Respondé ahora con los datos que ya obtuviste, diciendo explícitamente qué parte de la pregunta quedó sin cubrir.',
+    },
+  ];
+
+  const pendientes: EventoChat[] = [];
+  try {
+    const cierre = await ejecutarRonda(
+      configuracion,
+      historial,
+      (delta) => {
+        pendientes.push({ tipo: 'texto', delta });
+      },
+      true,
+    );
+
+    for (const evento of pendientes) yield evento;
+
+    if (cierre.texto.trim() === '') {
+      yield {
+        tipo: 'error',
+        mensaje: 'WiBot no pudo cerrar la respuesta. Probá pedir menos bloques por vez.',
+      };
+    }
+  } catch (error) {
+    const mensaje =
+      error instanceof ErrorDelModelo
+        ? error.message
+        : 'WiBot no pudo completar la respuesta. Probá acotar la pregunta a un período o a un concesionario.';
+    yield { tipo: 'error', mensaje };
   }
 }
 
@@ -334,7 +437,7 @@ export async function* conversar(
   ];
 
   for (let ronda = 0; ronda < MAX_RONDAS_DE_HERRAMIENTAS; ronda += 1) {
-    const pendientes: EventoChat[] = [];
+    let pendientes: EventoChat[] = [];
     let ejecutada: RondaStream;
     try {
       ejecutada = await ejecutarRonda(configuracion, mensajes, (delta) => {
@@ -347,7 +450,37 @@ export async function* conversar(
         titulo: `La ronda ${ronda + 1} falló`,
         detalle: { error: mensaje, mensajesEnviados: mensajes.length },
       });
-      throw error;
+
+      // El modelo rechazó el contexto acumulado. Antes de rendirse se reintenta
+      // una vez con el historial simplificado; si tampoco entra, se cierra con
+      // lo que ya se consultó en vez de dejar a la persona sin respuesta.
+      const datosReunidos = mensajes.some((entrada) => entrada.role === 'tool');
+      if (!datosReunidos) throw error;
+
+      pendientes = [];
+      const saneados = sanearHistorial(mensajes);
+      try {
+        ejecutada = await ejecutarRonda(configuracion, saneados, (delta) => {
+          pendientes.push({ tipo: 'texto', delta });
+        });
+        mensajes.length = 0;
+        mensajes.push(...saneados);
+        yield* emitirDiagnostico({
+          tipo: 'ronda',
+          titulo: `La ronda ${ronda + 1} se recuperó con el historial simplificado`,
+          detalle: { mensajesEnviados: saneados.length },
+        });
+      } catch (segundoError) {
+        const detalle = segundoError instanceof Error ? segundoError.message : String(segundoError);
+        yield* emitirDiagnostico({
+          tipo: 'error',
+          titulo: `El reintento de la ronda ${ronda + 1} también falló`,
+          detalle: { error: detalle },
+        });
+        yield* cerrarConLoReunido(configuracion, saneados);
+        yield { tipo: 'fin' };
+        return;
+      }
     }
 
     for (const evento of pendientes) yield evento;
@@ -440,7 +573,7 @@ export async function* conversar(
         mensajes.push({
           role: 'tool',
           tool_call_id: llamada.id,
-          content: JSON.stringify(resultado),
+          content: recortarResultado(resultado),
         });
       } catch (error) {
         const mensaje = error instanceof Error ? error.message : String(error);
@@ -457,46 +590,12 @@ export async function* conversar(
 
   // Agotadas las rondas, en vez de tirar todo lo consultado se le pide al modelo
   // que redacte la respuesta con lo que ya tiene sobre la mesa.
-  mensajes.push({
-    role: 'user',
-    content:
-      'Ya no podés hacer más consultas. Respondé ahora con los datos que ya obtuviste, diciendo explícitamente qué parte de la pregunta quedó sin cubrir.',
+  yield* emitirDiagnostico({
+    tipo: 'ronda',
+    titulo: 'Se agotó el tope de consultas; cerrando con lo reunido',
+    detalle: { topeRondas: MAX_RONDAS_DE_HERRAMIENTAS },
   });
 
-  const pendientesCierre: EventoChat[] = [];
-  try {
-    const cierre = await ejecutarRonda(
-      configuracion,
-      mensajes,
-      (delta) => {
-        pendientesCierre.push({ tipo: 'texto', delta });
-      },
-      true,
-    );
-
-    for (const evento of pendientesCierre) yield evento;
-
-    yield* emitirDiagnostico({
-      tipo: 'ronda',
-      titulo: 'Ronda de cierre: se agotó el tope de consultas',
-      duracionMs: cierre.duracionMs,
-      detalle: {
-        topeRondas: MAX_RONDAS_DE_HERRAMIENTAS,
-        caracteresDeTexto: cierre.texto.length,
-      },
-    });
-
-    if (cierre.texto.trim() === '') {
-      yield {
-        tipo: 'error',
-        mensaje:
-          'La consulta necesitó más pasos de los permitidos. Probá pedir menos bloques por vez, o acotarla a un período o a un concesionario.',
-      };
-    }
-  } catch (error) {
-    const mensaje = error instanceof Error ? error.message : String(error);
-    yield { tipo: 'error', mensaje };
-  }
-
+  yield* cerrarConLoReunido(configuracion, mensajes);
   yield { tipo: 'fin' };
 }
