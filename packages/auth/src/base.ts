@@ -55,6 +55,18 @@ function migrar(conexion: DatabaseSync): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria(ocurrido_en);
+
+    CREATE TABLE IF NOT EXISTS tokens_servicio (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre     TEXT    NOT NULL UNIQUE,
+      token_hash TEXT    NOT NULL UNIQUE,
+      origenes   TEXT    NOT NULL,
+      activo     INTEGER NOT NULL DEFAULT 1,
+      creado_en  TEXT    NOT NULL,
+      ultimo_uso TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tokens_hash ON tokens_servicio(token_hash);
   `);
 }
 

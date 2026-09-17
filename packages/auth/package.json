@@ -7,10 +7,11 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "bin": { "wibot-usuarios": "./dist/cli.js" },
+  "bin": { "wibot-usuarios": "./dist/cli.js", "wibot-tokens": "./dist/cli-tokens.js" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "usuarios": "node dist/cli.js"
+    "usuarios": "node dist/cli.js",
+    "tokens": "node dist/cli-tokens.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5"

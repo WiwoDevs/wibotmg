@@ -15,6 +15,7 @@
     "mcp": "npm run start -w @wibot/mcp",
     "dev": "npm run dev -w @wibot/web",
     "usuarios": "node packages/auth/dist/cli.js",
+    "tokens": "node packages/auth/dist/cli-tokens.js",
     "datos:importar": "node scripts/importar-datos.mjs"
   },
   "engines": {

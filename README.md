@@ -51,6 +51,8 @@ esa base, en vez de usar el usuario de WordPress.
 ## Quién puede entrar
 
 WiBot no es público: sin sesión, cualquier ruta redirige a `/entrar` y la API responde 401.
+La única excepción es un token de servicio válido, para que otra página consuma la API
+(ver "Que otra página consuma WiBot").
 Las cuentas viven en un SQLite propio (`.data/wibot.sqlite`), separado de la base de MG Contact,
 que también guarda las sesiones y la auditoría.
 
@@ -83,6 +85,72 @@ Cómo está protegido:
 
 Al servir WiBot fuera de `localhost`, ponelo detrás de HTTPS: la cookie de sesión y las
 contraseñas viajan en cada petición.
+
+## Que otra página consuma WiBot
+
+Además de la sesión por cookie, la API acepta **tokens de servicio**: así otra página puede
+llamar al chat y al tablero sin que haya nadie con sesión abierta. Los tokens viven en el mismo
+SQLite que los usuarios y se administran por consola:
+
+```bash
+npm run tokens -- crear <nombre> [origen...]   # alta; muestra el token una sola vez
+npm run tokens -- listar                       # estado y último uso de cada token
+npm run tokens -- revocar <nombre>             # lo deja fuera de servicio en el acto
+```
+
+Los orígenes son las páginas que van a llamar **desde el navegador**, con esquema y puerto:
+`https://sitio.cl`. Un token sin orígenes solo sirve de servidor a servidor.
+
+```bash
+npm run tokens -- crear sitio-mg https://mgcontact.cl
+```
+
+El token se manda en cada petición:
+
+```bash
+curl -H "Authorization: Bearer wibot_..." \
+  "https://wibot.tu-dominio.cl/api/tablero?desde=2026-08-01&hasta=2026-08-31"
+```
+
+Desde el navegador de la otra página, igual: el preflight se resuelve solo si el origen figura
+en algún token activo.
+
+```js
+const respuesta = await fetch(`${WIBOT}/api/tablero?desde=${desde}&hasta=${hasta}`, {
+  headers: { Authorization: `Bearer ${TOKEN_WIBOT}` },
+});
+const tablero = await respuesta.json();
+```
+
+El chat responde un flujo NDJSON: un evento JSON por línea, con los tipos `consultando`, `datos`,
+`texto`, `error` y `fin`.
+
+```js
+const respuesta = await fetch(`${WIBOT}/api/chat`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN_WIBOT}` },
+  body: JSON.stringify({ pregunta: '¿Cómo viene agosto?', historial: [] }),
+});
+for await (const linea of lineasDe(respuesta.body)) {
+  const evento = JSON.parse(linea);
+  if (evento.tipo === 'texto') mostrar(evento.delta);
+}
+```
+
+Qué tener en cuenta:
+
+- **El token es la credencial completa.** Nunca lo pongas en el JavaScript del navegador de una
+  página pública: cualquiera que abra el inspector se lo lleva. Si la otra página es pública,
+  que el token viva en su servidor y sea él quien llame a WiBot.
+- **La lista de orígenes no es una barrera de seguridad**, es la condición que el navegador exige.
+  Una petición hecha con `curl` no manda `Origin` y pasa igual: lo que la autoriza es el token.
+- **Un token entra a todo**: `/api/chat` y `/api/tablero`. No hay permisos por endpoint.
+- **Todo queda auditado** igual que una consulta de persona, con `token:<nombre>` en vez del correo
+  (`npm run usuarios -- auditoria`).
+- **Revocar es inmediato** y no borra el historial: el token queda inactivo y la auditoría anterior
+  sigue apuntando a su nombre.
+- **No hay límite de frecuencia por token.** Si la otra página va a llamar seguido, cacheá del lado
+  de ella: cada consulta al chat es una llamada a Gemini.
 
 ## Chat web
 
