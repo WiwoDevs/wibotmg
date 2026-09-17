@@ -1,15 +1,22 @@
 import type { Metadata, Viewport } from 'next';
-import { Archivo, Spline_Sans_Mono } from 'next/font/google';
+import { Outfit, Plus_Jakarta_Sans, Tomorrow } from 'next/font/google';
 import './globals.css';
 
-const interfaz = Archivo({
+const interfaz = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--fuente-interfaz',
   display: 'swap',
 });
 
-const datos = Spline_Sans_Mono({
+const marca = Outfit({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--fuente-marca',
+  display: 'swap',
+});
+
+const datos = Tomorrow({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--fuente-datos',
@@ -17,13 +24,13 @@ const datos = Spline_Sans_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'WiBot · Inteligencia ejecutiva MG Contact',
+  title: 'WiWO Me',
   description:
     'Preguntale en castellano a la base de cupones de servicio de MG Contact y recibí la cifra con su período.',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#070b09',
+  themeColor: '#f8fad7',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -31,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-CL" className={`${interfaz.variable} ${datos.variable}`}>
+    <html lang="es-CL" className={`${interfaz.variable} ${marca.variable} ${datos.variable}`}>
       <body>{children}</body>
     </html>
   );

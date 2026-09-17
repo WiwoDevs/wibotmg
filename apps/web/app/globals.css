@@ -1,36 +1,51 @@
-/* Sistema visual de WiBot. Ver DESIGN.md en la raíz del repositorio. */
+/* Sistema visual WiWO Neo. Ver DESIGN.md en la raíz del repositorio. */
 
 :root {
-  --lienzo: #070b09;
-  --superficie: #0e1512;
-  --superficie-alta: #16201b;
-  --linea: #1f2c26;
-  --texto: #e4ede7;
-  --texto-suave: #8fa098;
+  /* Superficies, de la más profunda a la más elevada. */
+  --lienzo: #f8fad7;
+  --superficie: #fffdf2;
+  --superficie-alta: #f4f3dd;
+  --superficie-inversa: #292929;
+  --linea: rgba(41, 41, 41, 0.14);
+  --linea-fuerte: rgba(41, 41, 41, 0.24);
+  --texto: #292929;
+  --texto-suave: #66685f;
+  --texto-inverso: #f8fad7;
 
-  --senal: #2fe87c;
-  --senal-tenue: rgba(47, 232, 124, 0.14);
-  --emisor: #4b49f5;
-  --emisor-texto: #f1f1ff;
-  --alerta: #ffb547;
+  /* Acentos de marca. El azul manda la acción; el verde solo es energía. */
+  --senal: #4242ff;
+  --senal-tenue: rgba(66, 66, 255, 0.1);
+  --senal-media: rgba(66, 66, 255, 0.24);
+  --energia: #3bff00;
+  --energia-tenue: rgba(59, 255, 0, 0.16);
+  --degradado: linear-gradient(103deg, #3bff00, #4242ff);
+  --degradado-animado: linear-gradient(103deg, #3bff00, #9adbb0 46%, #4242ff);
+
+  --emisor: #4242ff;
+  --emisor-texto: #fffdf2;
+  --alerta: #9c6417;
+  --peligro: #b3261e;
 
   /* Escala de temperatura de leads, del más caliente al más frío. */
-  --calor-4: #ff6b3d;
-  --calor-3: #ffb547;
-  --calor-2: #6fa8ff;
-  --calor-1: #4f6b61;
+  --calor-4: #c3463d;
+  --calor-3: #d88719;
+  --calor-2: #4242ff;
+  --calor-1: #8b8d85;
 
-  --peligro: #ff6b6b;
+  --radio-burbuja: 24px;
+  --radio-bloque: 16px;
+  --radio-chico: 10px;
+  --radio-pildora: 999px;
 
-  --radio-burbuja: 20px;
-  --radio-bloque: 12px;
-  --radio-chico: 8px;
+  --sombra-1: 0 8px 26px rgba(41, 41, 41, 0.08);
+  --sombra-2: 0 22px 70px rgba(41, 41, 41, 0.12);
 
-  --curva: cubic-bezier(0.2, 0, 0, 1);
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --curva-enfatica: cubic-bezier(0.2, 0, 0, 1);
 
-  --ancho-columna: 680px;
+  --ancho-columna: 760px;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *,
@@ -50,13 +65,14 @@ body {
   color: var(--texto);
   font-family: var(--fuente-interfaz), system-ui, sans-serif;
   font-size: 15px;
+  font-weight: 450;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: var(--senal-tenue);
+  background: var(--senal-media);
   color: var(--texto);
 }
 
@@ -68,7 +84,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--linea) transparent;
+  scrollbar-color: var(--linea-fuerte) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -77,13 +93,13 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--linea);
+  background: var(--linea-fuerte);
   border: 3px solid var(--lienzo);
-  border-radius: 999px;
+  border-radius: var(--radio-pildora);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #2b3b33;
+  background: rgba(41, 41, 41, 0.38);
 }
 
 button {

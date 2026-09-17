@@ -1,0 +1,480 @@
+/* Wiwo Thinking Orb. Vidrio de luz sobre escenario de tinta: el estado se lee
+   en el ritmo, el brillo y la deformación, nunca en un texto encima. */
+
+.escena {
+  --orbe-tamano: 40px;
+  --lumen-a: rgba(66, 66, 255, 0.62);
+  --lumen-b: rgba(59, 255, 0, 0.5);
+  --lumen-c: rgba(248, 250, 215, 0.52);
+  --aurora-opacidad: 0.86;
+  --nucleo-brillo: 0.46;
+  --destello-alfa: 0.68;
+  --velocidad: 2600ms;
+  --velocidad-flujo: 3900ms;
+  --escala-a: 1;
+  --escala-b: 1.09;
+  --escala-c: 0.98;
+  --particulas: 0.82;
+
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--orbe-tamano);
+  height: var(--orbe-tamano);
+  border-radius: 50%;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(66, 66, 255, 0.34), transparent 52%),
+    radial-gradient(circle at 74% 78%, rgba(59, 255, 0, 0.18), transparent 54%),
+    linear-gradient(145deg, #303030, #1d1d1d 72%);
+  box-shadow:
+    0 0 0 1px rgba(41, 41, 41, 0.14),
+    0 10px 30px rgba(41, 41, 41, 0.18),
+    inset 0 1px 0 rgba(248, 250, 215, 0.12);
+}
+
+/* Halo exterior: el aire que el orbe calienta alrededor. */
+.halo {
+  position: absolute;
+  inset: -14%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--lumen-a), transparent 64%);
+  filter: blur(calc(var(--orbe-tamano) * 0.09));
+  opacity: 0.6;
+  pointer-events: none;
+  animation: halo 7200ms var(--curva) infinite alternate;
+}
+
+.anillo,
+.anilloAlterno {
+  position: absolute;
+  width: 74%;
+  aspect-ratio: 1;
+  z-index: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(248, 250, 215, 0.18);
+  opacity: 0.46;
+  pointer-events: none;
+  transform: rotateX(62deg);
+  animation: anillo 5200ms linear infinite;
+}
+
+.anilloAlterno {
+  width: 92%;
+  border-style: dashed;
+  border-color: rgba(59, 255, 0, 0.22);
+  opacity: 0.28;
+  animation-duration: 7800ms;
+  animation-direction: reverse;
+}
+
+.orbe {
+  position: relative;
+  z-index: 2;
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 46% 54% 52% 48% / 48% 42% 58% 52%;
+  opacity: 0.94;
+  background:
+    radial-gradient(ellipse at 35% 25%, rgba(248, 250, 215, 0.28) 0 5%, transparent 22%),
+    radial-gradient(ellipse at 70% 43%, var(--lumen-a) 0 7%, transparent 30%),
+    radial-gradient(ellipse at 32% 72%, var(--lumen-b) 0 8%, transparent 32%),
+    conic-gradient(
+      from 118deg,
+      transparent 0 13%,
+      var(--lumen-b) 21%,
+      transparent 32%,
+      var(--lumen-c) 45%,
+      transparent 56%,
+      var(--lumen-a) 69%,
+      transparent 84% 100%
+    );
+  background-size: 148% 148%, 160% 160%, 168% 168%, 230% 230%;
+  background-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 0 26%,
+    rgba(0, 0, 0, 0.76) 40%,
+    rgba(0, 0, 0, 0.48) 60%,
+    transparent 82%
+  );
+  mask-image: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 0 26%,
+    rgba(0, 0, 0, 0.76) 40%,
+    rgba(0, 0, 0, 0.48) 60%,
+    transparent 82%
+  );
+  filter: saturate(1.58) brightness(1.03);
+  box-shadow:
+    0 0 calc(var(--orbe-tamano) * 0.6) rgba(66, 66, 255, 0.34),
+    0 0 calc(var(--orbe-tamano) * 0.45) rgba(59, 255, 0, 0.2);
+  animation:
+    respirar var(--velocidad) var(--curva) infinite,
+    campo var(--velocidad-flujo) linear infinite;
+}
+
+.pulso,
+.aurora,
+.borde,
+.nucleo,
+.destello {
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.pulso {
+  inset: -24%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(248, 250, 215, 0.14), transparent 38%),
+    conic-gradient(from 0deg, rgba(59, 255, 0, 0.22), rgba(66, 66, 255, 0.18), rgba(248, 250, 215, 0.12), rgba(59, 255, 0, 0.22));
+  filter: blur(calc(var(--orbe-tamano) * 0.05));
+  opacity: 0.5;
+  animation: pulso 2600ms var(--curva) infinite;
+}
+
+.pulsoDos {
+  animation-delay: 740ms;
+}
+
+.aurora {
+  inset: 2%;
+  z-index: 3;
+  mix-blend-mode: screen;
+  filter: blur(calc(var(--orbe-tamano) * 0.07)) saturate(1.95);
+  opacity: var(--aurora-opacidad);
+  transform-origin: 50% 50%;
+}
+
+.auroraUno {
+  background: conic-gradient(
+    from 210deg,
+    transparent 0 16%,
+    var(--lumen-b),
+    transparent 38%,
+    var(--lumen-a),
+    transparent 74% 100%
+  );
+  animation: auroraUno 4800ms var(--curva) infinite;
+}
+
+.auroraDos {
+  inset: 6%;
+  background:
+    radial-gradient(ellipse at 72% 36%, rgba(248, 250, 215, 0.24), transparent 32%),
+    conic-gradient(from 24deg, transparent 0 12%, var(--lumen-a), transparent 44%, var(--lumen-b), transparent 100%);
+  opacity: calc(var(--aurora-opacidad) * 0.82);
+  animation: auroraDos 6200ms linear infinite reverse;
+}
+
+.auroraTres {
+  inset: 10%;
+  background:
+    radial-gradient(ellipse at 42% 58%, rgba(248, 250, 215, 0.26), transparent 26%),
+    radial-gradient(ellipse at 62% 52%, var(--lumen-b), transparent 34%),
+    radial-gradient(ellipse at 48% 36%, var(--lumen-a), transparent 38%);
+  opacity: calc(var(--aurora-opacidad) * 0.74);
+  animation: auroraTres 3600ms var(--curva) infinite alternate;
+}
+
+.borde {
+  inset: -3%;
+  z-index: 4;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 12%,
+    rgba(248, 250, 215, 0.38),
+    rgba(59, 255, 0, 0.28),
+    transparent 52%,
+    rgba(66, 66, 255, 0.34),
+    transparent 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 5px), transparent 100%);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 5px), transparent 100%);
+  filter: blur(1px);
+  opacity: 0.46;
+  animation: girar 4200ms linear infinite;
+}
+
+.nucleo {
+  inset: 18%;
+  z-index: 5;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(248, 250, 215, 0.26), transparent 52%),
+    radial-gradient(ellipse at 54% 48%, var(--lumen-a), transparent 62%);
+  filter: blur(calc(var(--orbe-tamano) * 0.06)) saturate(1.5);
+  opacity: calc(var(--nucleo-brillo) * 0.6);
+  animation: nucleo 2400ms var(--curva) infinite;
+}
+
+.destello {
+  z-index: 6;
+  right: 18%;
+  top: 20%;
+  width: 20%;
+  height: 11%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(248, 250, 215, 0.76),
+    rgba(248, 250, 215, 0.16) 42%,
+    transparent 76%
+  );
+  filter: blur(calc(var(--orbe-tamano) * 0.03));
+  opacity: var(--destello-alfa);
+  transform: rotate(-18deg);
+  animation: destello 4200ms var(--curva) infinite;
+}
+
+/* Partículas en órbita: solo aparecen cuando hay trabajo en curso. */
+.particula {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  width: 8%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 255, 0, 0.76) 0 8%, rgba(59, 255, 0, 0.24) 28%, transparent 72%);
+  filter: blur(calc(var(--orbe-tamano) * 0.02)) saturate(1.3);
+  opacity: calc(var(--particulas) * 0.72);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  animation: orbitar var(--orbita-velocidad, 5200ms) linear infinite;
+  --orbita: calc(var(--orbe-tamano) * 0.46);
+}
+
+.particulaDos {
+  --orbita: calc(var(--orbe-tamano) * 0.4);
+  --orbita-velocidad: 6400ms;
+  background: radial-gradient(circle, rgba(66, 66, 255, 0.78) 0 8%, rgba(66, 66, 255, 0.26) 30%, transparent 72%);
+  animation-delay: -1900ms;
+}
+
+.particulaTres {
+  --orbita: calc(var(--orbe-tamano) * 0.52);
+  --orbita-velocidad: 7800ms;
+  background: radial-gradient(circle, rgba(248, 250, 215, 0.7) 0 8%, rgba(248, 250, 215, 0.24) 30%, transparent 74%);
+  animation-delay: -3600ms;
+}
+
+/* ---------------------------------------------------------------- estados */
+
+.escena[data-estado='reposo'] {
+  --lumen-a: rgba(66, 66, 255, 0.36);
+  --lumen-b: rgba(59, 255, 0, 0.26);
+  --lumen-c: rgba(248, 250, 215, 0.36);
+  --aurora-opacidad: 0.38;
+  --nucleo-brillo: 0.2;
+  --destello-alfa: 0.34;
+  --velocidad: 7600ms;
+  --velocidad-flujo: 9800ms;
+  --escala-a: 0.92;
+  --escala-b: 0.955;
+  --escala-c: 0.9;
+  --particulas: 0;
+}
+
+.escena[data-estado='escuchando'] {
+  --lumen-a: rgba(66, 66, 255, 0.5);
+  --lumen-b: rgba(59, 255, 0, 0.72);
+  --lumen-c: rgba(248, 250, 215, 0.52);
+  --aurora-opacidad: 0.72;
+  --nucleo-brillo: 0.32;
+  --destello-alfa: 0.52;
+  --velocidad: 3300ms;
+  --velocidad-flujo: 5200ms;
+  --escala-a: 0.96;
+  --escala-b: 1.04;
+  --escala-c: 0.95;
+  --particulas: 0.4;
+}
+
+.escena[data-estado='pensando'] {
+  --lumen-a: rgba(66, 66, 255, 0.62);
+  --lumen-b: rgba(59, 255, 0, 0.5);
+  --lumen-c: rgba(248, 250, 215, 0.52);
+  --aurora-opacidad: 0.86;
+  --nucleo-brillo: 0.46;
+  --destello-alfa: 0.68;
+  --velocidad: 2600ms;
+  --velocidad-flujo: 3900ms;
+}
+
+.escena[data-estado='generando'] {
+  --lumen-a: rgba(66, 66, 255, 0.68);
+  --lumen-b: rgba(59, 255, 0, 0.72);
+  --lumen-c: rgba(248, 250, 215, 0.58);
+  --aurora-opacidad: 0.98;
+  --nucleo-brillo: 0.52;
+  --destello-alfa: 0.82;
+  --velocidad: 1850ms;
+  --velocidad-flujo: 2400ms;
+  --escala-a: 1.02;
+  --escala-b: 1.14;
+  --escala-c: 1;
+  --particulas: 1;
+}
+
+.escena[data-estado='error'] {
+  --lumen-a: rgba(141, 124, 255, 0.44);
+  --lumen-b: rgba(179, 38, 30, 0.42);
+  --lumen-c: rgba(248, 250, 215, 0.28);
+  --aurora-opacidad: 0.36;
+  --nucleo-brillo: 0.18;
+  --destello-alfa: 0.28;
+  --velocidad: 1500ms;
+  --velocidad-flujo: 2200ms;
+  --escala-a: 0.88;
+  --escala-b: 0.96;
+  --escala-c: 0.84;
+  --particulas: 0;
+}
+
+/* ---------------------------------------------------------------- movimiento */
+
+@keyframes respirar {
+  0%,
+  100% {
+    transform: scale(var(--escala-a)) rotate(0deg);
+    border-radius: 46% 54% 52% 48% / 48% 42% 58% 52%;
+  }
+  44% {
+    transform: scale(var(--escala-b)) rotate(4deg);
+    border-radius: 52% 48% 45% 55% / 44% 55% 45% 56%;
+  }
+  72% {
+    transform: scale(var(--escala-c)) rotate(-3deg);
+    border-radius: 43% 57% 58% 42% / 54% 44% 56% 46%;
+  }
+}
+
+@keyframes campo {
+  0% {
+    background-position: 0% 48%, 74% 42%, 28% 78%, 0% 50%;
+  }
+  50% {
+    background-position: 16% 38%, 58% 54%, 42% 66%, 100% 50%;
+  }
+  100% {
+    background-position: 0% 48%, 74% 42%, 28% 78%, 0% 50%;
+  }
+}
+
+@keyframes auroraUno {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(0.95) skew(-4deg);
+    opacity: calc(var(--aurora-opacidad) * 0.7);
+  }
+  46% {
+    transform: rotate(142deg) scale(1.16) skew(6deg);
+    opacity: var(--aurora-opacidad);
+  }
+}
+
+@keyframes auroraDos {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(-360deg) scale(1.08);
+  }
+}
+
+@keyframes auroraTres {
+  from {
+    transform: translate3d(-4%, 3%, 0) scale(0.94);
+    opacity: calc(var(--aurora-opacidad) * 0.58);
+  }
+  to {
+    transform: translate3d(5%, -4%, 0) scale(1.14);
+    opacity: calc(var(--aurora-opacidad) * 0.86);
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nucleo {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: calc(var(--nucleo-brillo) * 0.42);
+  }
+  52% {
+    transform: scale(1.22);
+    opacity: calc(var(--nucleo-brillo) * 0.7);
+  }
+}
+
+@keyframes destello {
+  0%,
+  100% {
+    transform: rotate(-18deg) scale(0.78);
+    opacity: calc(var(--destello-alfa) * 0.54);
+  }
+  42% {
+    transform: translate3d(-18%, 16%, 0) rotate(-8deg) scale(1.14);
+    opacity: var(--destello-alfa);
+  }
+  76% {
+    transform: translate3d(-36%, 34%, 0) rotate(6deg) scale(0.9);
+    opacity: calc(var(--destello-alfa) * 0.62);
+  }
+}
+
+@keyframes pulso {
+  0% {
+    opacity: calc(var(--aurora-opacidad) * 0.5);
+    transform: scale(0.74);
+  }
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(1.42);
+  }
+}
+
+@keyframes halo {
+  from {
+    opacity: 0.36;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 0.72;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes anillo {
+  0% {
+    transform: rotateX(62deg) rotateZ(0deg) scale(0.96);
+    opacity: 0.28;
+  }
+  45% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: rotateX(62deg) rotateZ(360deg) scale(1.04);
+    opacity: 0.34;
+  }
+}
+
+@keyframes orbitar {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(var(--orbita)) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg) translateX(var(--orbita)) rotate(-360deg);
+  }
+}

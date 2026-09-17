@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BloqueDatos, EventoChat, EventoDiagnosticoCliente, MensajeChat } from '@/lib/tipos';
 import { BloqueDeDatos } from './BloquesDeDatos';
-import { MarcaWiBot } from './MarcaWiBot';
+import { OrbePensante, type EstadoOrbe } from './OrbePensante';
 import { TextoRico } from './TextoRico';
 import {
   IconoAlerta,
@@ -43,6 +43,26 @@ function horaActual(): string {
   return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
 }
 
+interface SenalesDelOrbe {
+  trabajando: boolean;
+  consultando: boolean;
+  escribiendo: boolean;
+  hayFalla: boolean;
+}
+
+/**
+ * Traduce lo que está pasando en la conversación al estado que debe mostrar el orbe.
+ *
+ * @param senales Señales vivas del turno en curso.
+ * @returns El estado del orbe que corresponde, priorizando la falla sobre el resto.
+ */
+function estadoDelOrbe({ trabajando, consultando, escribiendo, hayFalla }: SenalesDelOrbe): EstadoOrbe {
+  if (hayFalla && !trabajando) return 'error';
+  if (trabajando) return consultando ? 'pensando' : 'generando';
+  if (escribiendo) return 'escuchando';
+  return 'reposo';
+}
+
 function identificador(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -56,7 +76,7 @@ interface Props {
 }
 
 /**
- * Conversación completa de WiBot: cabecera, hilo de mensajes y campo de escritura.
+ * Conversación completa de WiWO Me: cabecera, hilo de mensajes y campo de escritura.
  * Consume el flujo NDJSON de /api/chat y va componiendo el turno en curso.
  */
 export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnostico }: Props) {
@@ -220,21 +240,30 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
     router.refresh();
   }, [router]);
 
+  const ultimoMensaje = mensajes[mensajes.length - 1];
+  const hayFalla = ultimoMensaje?.autor === 'wibot' && Boolean(ultimoMensaje.error);
+  const estadoOrbe = estadoDelOrbe({
+    trabajando,
+    consultando: consultaEnCurso !== null,
+    escribiendo: borrador.trim() !== '',
+    hayFalla,
+  });
+
   const conversacionVacia = mensajes.length === 0;
 
   return (
     <div className={estilos.aplicacion}>
       <header className={estilos.cabecera}>
-        <MarcaWiBot tamano={38} activo={trabajando} />
+        <OrbePensante tamano={42} estado={estadoOrbe} />
         <div className={estilos.identidad}>
           <h1 className={estilos.nombre}>
-            WiBot
+            Thinking Orb
             <span className={`${estilos.estado} ${trabajando ? '' : estilos.estadoInactivo}`}>
               <span className={estilos.punto} />
               {trabajando ? 'CONSULTANDO' : 'LISTO'}
             </span>
           </h1>
-          <p className={estilos.bajada}>WIWO · Inteligencia ejecutiva</p>
+          <p className={estilos.bajada}>WiWO Me · Inteligencia ejecutiva</p>
         </div>
         <div className={estilos.sesion}>
           <p className={estilos.contadorBase} title={`Base ${nombreBase}, privacidad ${modoPrivacidad}`}>
@@ -282,10 +311,14 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
       <div className={estilos.conversacion} ref={hiloRef}>
         {conversacionVacia ? (
           <div className={estilos.apertura}>
+            <div className={estilos.aperturaOrbe}>
+              <OrbePensante tamano={188} estado={estadoOrbe} etiqueta="Thinking Orb de WiWO Me" />
+            </div>
             <h2 className={estilos.aperturaTitulo}>Preguntale a la operación.</h2>
             <p className={estilos.aperturaTexto}>
               87.441 cupones de servicio desde marzo de 2025, con su concesionario, su local, su asesor y su
-              vehículo. Escribí en castellano; WiBot consulta la base y te devuelve el número con su período.
+              vehículo. Escribí en castellano; el Thinking Orb consulta la base y te devuelve el número con
+              su período.
             </p>
             <div className={estilos.sugerencias}>
               {SUGERENCIAS.map((sugerencia) => (
@@ -310,7 +343,7 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
               <span className={estilos.hora}>{mensaje.hora}</span>
             </div>
           ) : (
-            <div className={`${estilos.turno} ${estilos.turnoWibot}`} key={mensaje.id}>
+            <div className={`${estilos.turno} ${estilos.turnoOrbe}`} key={mensaje.id}>
               {mensaje.bloques.map((bloque) => (
                 <BloqueDeDatos bloque={bloque} key={bloque.id} />
               ))}
@@ -326,7 +359,7 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
               ) : null}
 
               {mensaje.texto !== '' || mensaje.enCurso ? (
-                <div className={`${estilos.burbuja} ${estilos.burbujaWibot}`}>
+                <div className={`${estilos.burbuja} ${estilos.burbujaOrbe}`}>
                   <TextoRico texto={mensaje.texto} />
                   {mensaje.enCurso ? <span className={estilos.cursor} /> : null}
                 </div>
@@ -377,7 +410,7 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
             className={estilos.entrada}
             value={borrador}
             rows={1}
-            placeholder="Preguntale a WiBot…"
+            placeholder="Preguntale al Thinking Orb…"
             aria-label="Escribí tu pregunta"
             onChange={(evento) => {
               setBorrador(evento.target.value);
@@ -411,7 +444,7 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
           )}
         </div>
         <p className={estilos.aviso}>
-          WiBot solo lee la base. Los datos personales se enmascaran salvo en búsquedas puntuales.
+          El Thinking Orb solo lee la base. Los datos personales se enmascaran salvo en búsquedas puntuales.
         </p>
       </form>
 
