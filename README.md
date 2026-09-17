@@ -88,6 +88,8 @@ contraseñas viajan en cada petición.
 
 ## Que otra página consuma WiBot
 
+> Referencia completa de la API, para integrarla desde otro proyecto: [`docs/API.md`](docs/API.md).
+
 Además de la sesión por cookie, la API acepta **tokens de servicio**: así otra página puede
 llamar al chat y al tablero sin que haya nadie con sesión abierta. Los tokens viven en el mismo
 SQLite que los usuarios y se administran por consola:
