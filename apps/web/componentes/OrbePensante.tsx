@@ -20,6 +20,8 @@ interface Props {
   estado?: EstadoOrbe;
   /** Reemplaza la descripción accesible cuando el contexto ya dice otra cosa. */
   etiqueta?: string;
+  /** Dibuja el disco de tinta bajo el orbe. Se apaga cuando ya hay una superficie oscura. */
+  conEscenario?: boolean;
 }
 
 /**
@@ -29,14 +31,15 @@ interface Props {
  * @param tamano Diámetro del orbe en píxeles.
  * @param estado Momento del ciclo que debe representar.
  * @param etiqueta Texto alternativo accesible.
+ * @param conEscenario Si dibuja su propio disco de tinta.
  */
-export function OrbePensante({ tamano, estado = 'reposo', etiqueta }: Props) {
+export function OrbePensante({ tamano, estado = 'reposo', etiqueta, conEscenario = true }: Props) {
   const diametro = typeof tamano === 'number' && Number.isFinite(tamano) && tamano > 0 ? tamano : TAMANO_POR_DEFECTO;
   const variables = { '--orbe-tamano': `${diametro}px` } as CSSProperties;
 
   return (
     <div
-      className={estilos.escena}
+      className={conEscenario ? estilos.escena : `${estilos.escena} ${estilos.sinEscenario}`}
       data-estado={estado}
       style={variables}
       role="img"

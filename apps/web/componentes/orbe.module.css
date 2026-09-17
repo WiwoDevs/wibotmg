@@ -25,13 +25,20 @@
   border-radius: 50%;
   isolation: isolate;
   background:
-    radial-gradient(circle at 30% 24%, rgba(66, 66, 255, 0.34), transparent 52%),
-    radial-gradient(circle at 74% 78%, rgba(59, 255, 0, 0.18), transparent 54%),
-    linear-gradient(145deg, #303030, #1d1d1d 72%);
+    radial-gradient(circle at 30% 24%, rgba(66, 66, 255, 0.46), transparent 46%),
+    radial-gradient(circle at 74% 78%, rgba(59, 255, 0, 0.26), transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(248, 250, 215, 0.12), transparent 62%),
+    linear-gradient(145deg, #343434, #1f1f1f 74%);
   box-shadow:
     0 0 0 1px rgba(41, 41, 41, 0.14),
     0 10px 30px rgba(41, 41, 41, 0.18),
     inset 0 1px 0 rgba(248, 250, 215, 0.12);
+}
+
+/* Cuando el orbe ya vive sobre una superficie de tinta, su disco sobra. */
+.sinEscenario {
+  background: none;
+  box-shadow: none;
 }
 
 /* Halo exterior: el aire que el orbe calienta alrededor. */
@@ -73,7 +80,7 @@
 .orbe {
   position: relative;
   z-index: 2;
-  width: 76%;
+  width: 84%;
   aspect-ratio: 1;
   border-radius: 46% 54% 52% 48% / 48% 42% 58% 52%;
   opacity: 0.94;
@@ -107,7 +114,7 @@
     rgba(0, 0, 0, 0.48) 60%,
     transparent 82%
   );
-  filter: saturate(1.58) brightness(1.03);
+  filter: saturate(1.7) brightness(1.14);
   box-shadow:
     0 0 calc(var(--orbe-tamano) * 0.6) rgba(66, 66, 255, 0.34),
     0 0 calc(var(--orbe-tamano) * 0.45) rgba(59, 255, 0, 0.2);
@@ -267,12 +274,12 @@
 /* ---------------------------------------------------------------- estados */
 
 .escena[data-estado='reposo'] {
-  --lumen-a: rgba(66, 66, 255, 0.36);
-  --lumen-b: rgba(59, 255, 0, 0.26);
-  --lumen-c: rgba(248, 250, 215, 0.36);
-  --aurora-opacidad: 0.38;
-  --nucleo-brillo: 0.2;
-  --destello-alfa: 0.34;
+  --lumen-a: rgba(66, 66, 255, 0.56);
+  --lumen-b: rgba(59, 255, 0, 0.44);
+  --lumen-c: rgba(248, 250, 215, 0.5);
+  --aurora-opacidad: 0.6;
+  --nucleo-brillo: 0.34;
+  --destello-alfa: 0.5;
   --velocidad: 7600ms;
   --velocidad-flujo: 9800ms;
   --escala-a: 0.92;

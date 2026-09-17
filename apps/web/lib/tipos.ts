@@ -7,7 +7,7 @@ export interface MensajeChat {
   texto: string;
   /** Hora en que se creó el turno, ya formateada para mostrar. */
   hora: string;
-  /** Bloques de datos que WiBot obtuvo de la base para responder este turno. */
+  /** Bloques de datos que el Thinking Orb obtuvo de la base para responder este turno. */
   bloques: BloqueDatos[];
   /** Consultas que quedaron registradas, para poder auditar de dónde salió el número. */
   consultas: ConsultaRealizada[];

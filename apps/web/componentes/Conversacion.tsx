@@ -17,7 +17,7 @@ import {
   IconoSalir,
 } from './Iconos';
 import { PanelDiagnostico } from './PanelDiagnostico';
-import estilos from './wibot.module.css';
+import estilos from './conversacion.module.css';
 
 const SUGERENCIAS = [
   '¿Cómo viene la operación este mes?',
@@ -312,7 +312,12 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
         {conversacionVacia ? (
           <div className={estilos.apertura}>
             <div className={estilos.aperturaOrbe}>
-              <OrbePensante tamano={188} estado={estadoOrbe} etiqueta="Thinking Orb de WiWO Me" />
+              <OrbePensante
+                tamano={216}
+                estado={estadoOrbe}
+                etiqueta="Thinking Orb de WiWO Me"
+                conEscenario={false}
+              />
             </div>
             <h2 className={estilos.aperturaTitulo}>Preguntale a la operación.</h2>
             <p className={estilos.aperturaTexto}>

@@ -3,19 +3,24 @@
   place-items: center;
   min-height: 100dvh;
   padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(circle at 16% 8%, rgba(66, 66, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 84% 88%, rgba(59, 255, 0, 0.12), transparent 40%),
+    var(--lienzo);
 }
 
 .tarjeta {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding: 24px;
+  gap: 24px;
+  padding: 28px;
   border: 1px solid var(--linea);
-  border-radius: 20px;
+  border-radius: 28px;
   background: var(--superficie);
-  animation: aparecer 260ms var(--curva) both;
+  box-shadow: var(--sombra-2);
+  animation: aparecer 260ms var(--curva-enfatica) both;
 }
 
 @keyframes aparecer {
@@ -32,21 +37,22 @@
 .marca {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .titulo {
   margin: 0;
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-family: var(--fuente-marca), var(--fuente-interfaz), system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .bajada {
   margin: 0;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--texto-suave);
 }
@@ -71,24 +77,27 @@
 
 .etiqueta {
   font-size: 12px;
+  font-weight: 600;
   color: var(--texto-suave);
 }
 
 .entrada {
-  padding: 10px 12px;
+  padding: 11px 14px;
   border: 1px solid var(--linea);
   border-radius: var(--radio-bloque);
   background: var(--superficie-alta);
   color: var(--texto);
   font: inherit;
   caret-color: var(--senal);
-  transition-property: border-color;
-  transition-duration: 150ms;
+  transition-property: border-color, box-shadow, background-color;
+  transition-duration: 160ms;
 }
 
 .entrada:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--senal) 45%, var(--linea));
+  border-color: var(--senal-media);
+  background: var(--superficie);
+  box-shadow: 0 0 0 4px var(--senal-tenue);
 }
 
 .pista {
@@ -101,10 +110,10 @@
   align-items: flex-start;
   gap: 8px;
   margin: 0;
-  padding: 9px 11px;
-  border: 1px solid color-mix(in srgb, var(--peligro) 35%, var(--linea));
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--peligro) 32%, var(--linea));
   border-radius: var(--radio-bloque);
-  background: color-mix(in srgb, var(--peligro) 8%, var(--superficie));
+  background: #fbe8e6;
   font-size: 13px;
 }
 
@@ -119,15 +128,16 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 2px;
-  padding: 11px 16px;
+  margin-top: 4px;
+  padding: 13px 18px;
   border: none;
-  border-radius: var(--radio-bloque);
+  border-radius: var(--radio-pildora);
   background: var(--senal);
-  color: #04160c;
-  font-weight: 600;
-  transition-property: scale, opacity;
-  transition-duration: 150ms;
+  color: var(--emisor-texto);
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(66, 66, 255, 0.26);
+  transition-property: scale, opacity, box-shadow;
+  transition-duration: 160ms;
   transition-timing-function: var(--curva);
 }
 
@@ -137,6 +147,7 @@
 
 .boton:disabled {
   opacity: 0.6;
+  box-shadow: none;
   cursor: progress;
 }
 

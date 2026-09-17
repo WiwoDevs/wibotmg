@@ -7,9 +7,11 @@
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--linea);
+  border-start-start-radius: 24px;
+  border-start-end-radius: 24px;
   background: var(--superficie);
-  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.55);
-  animation: subir 220ms var(--curva) both;
+  box-shadow: 0 -18px 50px rgba(41, 41, 41, 0.16);
+  animation: subir 220ms var(--curva-enfatica) both;
 }
 
 @keyframes subir {
@@ -55,17 +57,19 @@
 .accion {
   padding: 4px 9px;
   border: 1px solid var(--linea);
-  border-radius: 999px;
-  background: none;
+  border-radius: var(--radio-pildora);
+  background: var(--superficie-alta);
   color: var(--texto-suave);
   font-size: 11px;
+  font-weight: 600;
   transition-property: color, border-color;
   transition-duration: 150ms;
 }
 
 .accion:hover:not(:disabled) {
-  color: var(--texto);
-  border-color: color-mix(in srgb, var(--senal) 35%, var(--linea));
+  color: var(--senal);
+  border-color: var(--senal-media);
+  background: var(--senal-tenue);
 }
 
 .accion:disabled {
@@ -113,8 +117,8 @@
 
 .tipo {
   padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(143, 160, 152, 0.14);
+  border-radius: var(--radio-pildora);
+  background: rgba(41, 41, 41, 0.07);
   color: var(--texto-suave);
   font-family: var(--fuente-datos), ui-monospace, monospace;
   font-size: 10px;
@@ -122,13 +126,13 @@
 }
 
 .tipo_ronda {
-  background: rgba(75, 73, 245, 0.2);
-  color: #a9a8ff;
+  background: var(--senal-tenue);
+  color: var(--senal);
 }
 
 .tipo_herramienta {
-  background: var(--senal-tenue);
-  color: var(--senal);
+  background: var(--energia-tenue);
+  color: #1c7a38;
 }
 
 .tipo_error {
@@ -153,7 +157,7 @@
 
 .chevron {
   color: var(--texto-suave);
-  transition: rotate 150ms var(--curva);
+  transition: rotate 160ms var(--curva);
 }
 
 .chevronAbierto {
@@ -163,7 +167,7 @@
 .detalle {
   margin: 0;
   padding: 10px 12px 12px;
-  background: var(--lienzo);
+  background: var(--superficie-alta);
   border-top: 1px solid var(--linea);
   font-family: var(--fuente-datos), ui-monospace, monospace;
   font-size: 11px;

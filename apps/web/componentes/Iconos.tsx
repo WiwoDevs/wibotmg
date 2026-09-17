@@ -1,5 +1,5 @@
 /**
- * Set de iconos dibujado para WiBot: un solo trazo (1.5px), esquinas redondeadas
+ * Set de iconos dibujado para WiWO Me: un solo trazo (1.5px), esquinas redondeadas
  * y `currentColor` para que el estado lo dé el CSS.
  */
 
@@ -47,7 +47,7 @@ export function IconoDetener(props: PropsIcono) {
   );
 }
 
-/** Base de datos: marca las consultas que WiBot hizo contra la operación. */
+/** Base de datos: marca las consultas que el Thinking Orb hizo contra la operación. */
 export function IconoBase(props: PropsIcono) {
   return (
     <Base {...props}>

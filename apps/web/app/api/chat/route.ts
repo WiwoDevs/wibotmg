@@ -24,7 +24,7 @@ function normalizarHistorial(valor: unknown): TurnoEnviado[] {
 
 /**
  * Responde una pregunta de la persona con un flujo NDJSON de eventos:
- * consultas en curso, bloques de datos y el texto de WiBot a medida que se genera.
+ * consultas en curso, bloques de datos y el texto del Thinking Orb a medida que se genera.
  */
 export async function POST(peticion: Request): Promise<Response> {
   const usuario = await obtenerUsuarioActual();

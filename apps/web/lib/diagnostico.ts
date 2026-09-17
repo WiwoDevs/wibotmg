@@ -20,7 +20,7 @@ const MAXIMO_EVENTOS = 200;
 const registro: EventoDiagnostico[] = [];
 
 /**
- * Indica si WiBot corre en modo diagnóstico.
+ * Indica si WiWO Me corre en modo diagnóstico.
  * Se activa con `WIBOT_DEV=1`; fuera de eso no se guarda ni se expone nada.
  */
 export function esModoDiagnostico(): boolean {
