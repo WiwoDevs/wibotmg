@@ -143,10 +143,21 @@ clic y no toca la auditoría: lo que se preguntó queda registrado igual.
 
 ## Servidor MCP
 
-Con `.mcp.json` en la raíz, Claude Code lo detecta al abrir el proyecto. Para registrarlo a mano:
+Con `.mcp.json` en la raíz, Claude Code lo detecta al abrir el proyecto. Para registrarlo a mano,
+o para Claude Desktop, usá la ruta absoluta:
 
 ```bash
 claude mcp add wibot -- node /ruta/a/mgcontactbot/packages/mcp/dist/servidor.js
+```
+
+El servidor ubica su `.env` y sus bases a partir de dónde está instalado, no del directorio desde
+el que lo arranquen, así que funciona igual lo lance quien lo lance.
+
+**Después de tocar el código hay que recompilar y reiniciar el cliente MCP**: los clientes levantan
+el proceso una sola vez y se quedan con las herramientas que vieron al conectar.
+
+```bash
+npm run build     # recompila core, auth y MCP
 ```
 
 Herramientas expuestas:

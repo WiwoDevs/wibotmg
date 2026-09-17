@@ -1,25 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
 import { existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
+import { obtenerConfiguracion, raizDelProyecto } from './config.js';
 
 let base: DatabaseSync | undefined;
 let rutaResuelta: string | undefined;
 
-/** Busca la raíz del proyecto subiendo hasta encontrar el .env. */
-function raizDelProyecto(): string {
-  let actual = resolve(process.cwd());
-  for (let i = 0; i < 6; i += 1) {
-    if (existsSync(resolve(actual, '.env'))) return actual;
-    const padre = dirname(actual);
-    if (padre === actual) break;
-    actual = padre;
-  }
-  return process.cwd();
-}
-
 /** Ruta del SQLite con los datos de gestión importados desde los Excel. */
 export function rutaBaseGestion(): string {
   if (rutaResuelta) return rutaResuelta;
+  // Se lee la configuración primero para que el .env quede cargado.
+  obtenerConfiguracion();
   const relativa = process.env.WIBOT_DATOS_DB?.trim() || '.data/wibot-datos.sqlite';
   rutaResuelta = resolve(raizDelProyecto(), relativa);
   return rutaResuelta;

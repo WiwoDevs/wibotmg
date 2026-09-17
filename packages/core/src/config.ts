@@ -1,6 +1,7 @@
 import { config as cargarDotenv } from 'dotenv';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Modos de tratamiento de datos personales soportados por WiBot. */
 export type ModoPrivacidad = 'aggregate' | 'masked' | 'full';
@@ -21,13 +22,10 @@ export interface ConfiguracionWiBot {
   zonaHoraria: string;
 }
 
-/**
- * Busca el archivo .env subiendo desde el directorio actual hasta la raíz.
- * Permite que el MCP y la web compartan un único .env en la raíz del repo.
- */
+/** Busca el archivo .env subiendo desde un directorio hasta la raíz. */
 function buscarEnvHaciaArriba(desde: string): string | undefined {
   let actual = resolve(desde);
-  for (let i = 0; i < 6; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
     const candidato = resolve(actual, '.env');
     if (existsSync(candidato)) return candidato;
     const padre = dirname(actual);
@@ -35,6 +33,24 @@ function buscarEnvHaciaArriba(desde: string): string | undefined {
     actual = padre;
   }
   return undefined;
+}
+
+/**
+ * Ubica el .env del proyecto.
+ *
+ * Busca primero junto al propio módulo y después desde el directorio de
+ * trabajo: un cliente MCP arranca el servidor desde cualquier carpeta, así que
+ * depender del cwd hacía que no encontrara la configuración y no levantara.
+ */
+export function ubicarEnv(): string | undefined {
+  const propio = dirname(fileURLToPath(import.meta.url));
+  return buscarEnvHaciaArriba(propio) ?? buscarEnvHaciaArriba(process.cwd());
+}
+
+/** Raíz del proyecto, deducida de dónde está el .env. */
+export function raizDelProyecto(): string {
+  const rutaEnv = ubicarEnv();
+  return rutaEnv ? dirname(rutaEnv) : process.cwd();
 }
 
 let cacheConfiguracion: ConfiguracionWiBot | undefined;
@@ -65,7 +81,7 @@ function leerModoPrivacidad(valor: string | undefined): ModoPrivacidad {
 export function obtenerConfiguracion(): ConfiguracionWiBot {
   if (cacheConfiguracion) return cacheConfiguracion;
 
-  const rutaEnv = buscarEnvHaciaArriba(process.cwd());
+  const rutaEnv = ubicarEnv();
   if (rutaEnv) cargarDotenv({ path: rutaEnv, override: false });
 
   const database = process.env.DB_NAME?.trim();

@@ -37,6 +37,16 @@ const periodoShape = {
   hasta: z.string().optional().describe('Fecha final YYYY-MM-DD.'),
 };
 
+/** Igual que periodoShape, pero diciendo el valor por defecto de la base de gestión. */
+const periodoShapeGestion = {
+  periodo: z
+    .enum(['hoy', 'ayer', 'ultimos_7_dias', 'ultimos_30_dias', 'mes_actual', 'mes_anterior', 'anio_actual', 'todo'])
+    .optional()
+    .describe('Período relativo. Por defecto el histórico completo, que es lo que conviene acá.'),
+  desde: z.string().optional().describe('Fecha inicial YYYY-MM-DD. Tiene prioridad sobre "periodo".'),
+  hasta: z.string().optional().describe('Fecha final YYYY-MM-DD.'),
+};
+
 const filtrosShape = {
   concesionario: z.string().optional().describe('Concesionario, por ejemplo "Salazar Israel". Coincidencia parcial.'),
   local: z.string().optional().describe('Sucursal. Coincidencia parcial.'),
@@ -58,6 +68,17 @@ function extraerPeriodo(argumentos: Argumentos): EntradaPeriodo {
   if (typeof argumentos.desde === 'string' && argumentos.desde !== '') entrada.desde = argumentos.desde;
   if (typeof argumentos.hasta === 'string' && argumentos.hasta !== '') entrada.hasta = argumentos.hasta;
   return entrada;
+}
+
+/**
+ * Período para las herramientas de gestión. Si la persona no pidió uno, se usa
+ * el histórico completo: los leads y las llamadas cargados son de un solo mes,
+ * y con el mes en curso por defecto toda consulta salía vacía.
+ */
+function extraerPeriodoGestion(argumentos: Argumentos): EntradaPeriodo {
+  const entrada = extraerPeriodo(argumentos);
+  const sinPeriodo = entrada.relativo === undefined && entrada.desde === undefined && entrada.hasta === undefined;
+  return sinPeriodo ? { relativo: 'todo' } : entrada;
 }
 
 function extraerFiltros(argumentos: Argumentos): FiltrosCupones {
@@ -271,7 +292,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       concesionario: z.string().optional().describe('Filtra por concesionario. Coincidencia parcial.'),
       sucursal: z.string().optional().describe('Filtra por sucursal. Coincidencia parcial.'),
       limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
-      ...periodoShape,
+      ...periodoShapeGestion,
     },
     formato: 'encuestas',
     ejecutar: async (argumentos) => {
@@ -280,7 +301,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       if (typeof argumentos.sucursal === 'string') filtros.sucursal = argumentos.sucursal;
       return analizarEncuestas(
         (argumentos.agrupar_por as EjeEncuestas) ?? 'concesionario',
-        extraerPeriodo(argumentos),
+        extraerPeriodoGestion(argumentos),
         filtros,
         entero(argumentos.limite, 20),
       );
@@ -302,7 +323,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       estado: z.string().optional().describe('Filtra por estado del CRM.'),
       modelo_interes: z.string().optional().describe('Filtra por modelo de interés.'),
       limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
-      ...periodoShape,
+      ...periodoShapeGestion,
     },
     formato: 'leads',
     ejecutar: async (argumentos) => {
@@ -314,7 +335,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       }
       return analizarLeads(
         (argumentos.agrupar_por as EjeLeads) ?? 'valoracion',
-        extraerPeriodo(argumentos),
+        extraerPeriodoGestion(argumentos),
         filtros,
         entero(argumentos.limite, 20),
       );
@@ -348,7 +369,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       direccion: z.string().optional().describe('Filtra por Inbound, Outbound o Inbound Queue.'),
       estado: z.string().optional().describe('Filtra por Answered, Unanswered o Waiting.'),
       limite: z.number().int().min(1).max(100).optional().describe('Cantidad de filas. Por defecto 20.'),
-      ...periodoShape,
+      ...periodoShapeGestion,
     },
     formato: 'llamadas',
     ejecutar: async (argumentos) => {
@@ -357,7 +378,7 @@ export const HERRAMIENTAS: Herramienta[] = [
       if (typeof argumentos.estado === 'string') filtros.estado = argumentos.estado;
       return analizarLlamadas(
         (argumentos.agrupar_por as EjeLlamadas) ?? 'direccion',
-        extraerPeriodo(argumentos),
+        extraerPeriodoGestion(argumentos),
         filtros,
         entero(argumentos.limite, 20),
       );

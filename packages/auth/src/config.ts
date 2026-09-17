@@ -1,6 +1,7 @@
 import { config as cargarDotenv } from 'dotenv';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export interface ConfiguracionAcceso {
   /** Ruta del archivo SQLite con usuarios, sesiones y auditoría. */
@@ -15,10 +16,10 @@ export interface ConfiguracionAcceso {
   largoMinimoContrasena: number;
 }
 
-/** Busca el archivo .env subiendo desde el directorio actual hasta la raíz. */
+/** Busca el archivo .env subiendo desde un directorio hasta la raíz. */
 function buscarEnvHaciaArriba(desde: string): string | undefined {
   let actual = resolve(desde);
-  for (let i = 0; i < 6; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
     const candidato = resolve(actual, '.env');
     if (existsSync(candidato)) return candidato;
     const padre = dirname(actual);
@@ -28,9 +29,14 @@ function buscarEnvHaciaArriba(desde: string): string | undefined {
   return undefined;
 }
 
-/** Devuelve la raíz del repositorio, ubicada por la presencia del .env. */
+/**
+ * Devuelve la raíz del repositorio, ubicada por la presencia del .env.
+ * Busca primero junto al propio módulo, porque un proceso puede arrancar
+ * desde cualquier directorio de trabajo.
+ */
 function raizDelProyecto(): string {
-  const rutaEnv = buscarEnvHaciaArriba(process.cwd());
+  const propio = dirname(fileURLToPath(import.meta.url));
+  const rutaEnv = buscarEnvHaciaArriba(propio) ?? buscarEnvHaciaArriba(process.cwd());
   return rutaEnv ? dirname(rutaEnv) : process.cwd();
 }
 
