@@ -357,16 +357,33 @@ export function Conversacion({ nombreBase, modoPrivacidad, usuario, modoDiagnost
                 <div className={estilos.actividad} role="status">
                   <p className={estilos.actividadFila}>
                     <IconoBase tamano={15} />
-                    Consultando la base: <span className={estilos.actividadNombre}>{consultaEnCurso}</span>
+                    Consultando la base:{' '}
+                    <span className={estilos.actividadNombre} key={consultaEnCurso}>
+                      {consultaEnCurso}
+                    </span>
                   </p>
                   <div className={estilos.barra} />
                 </div>
               ) : null}
 
               {mensaje.texto !== '' || mensaje.enCurso ? (
-                <div className={`${estilos.burbuja} ${estilos.burbujaOrbe}`}>
-                  <TextoRico texto={mensaje.texto} />
-                  {mensaje.enCurso ? <span className={estilos.cursor} /> : null}
+                <div
+                  className={`${estilos.burbuja} ${estilos.burbujaOrbe} ${
+                    mensaje.enCurso ? estilos.burbujaEnCurso : ''
+                  }`}
+                >
+                  {mensaje.texto === '' && mensaje.enCurso ? (
+                    <span className={estilos.pensando} role="status" aria-label="Pensando">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  ) : (
+                    <>
+                      <TextoRico texto={mensaje.texto} />
+                      {mensaje.enCurso ? <span className={estilos.cursor} /> : null}
+                    </>
+                  )}
                 </div>
               ) : null}
 

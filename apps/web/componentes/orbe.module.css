@@ -1,5 +1,6 @@
-/* Wiwo Thinking Orb. Vidrio de luz sobre escenario de tinta: el estado se lee
-   en el ritmo, el brillo y la deformación, nunca en un texto encima. */
+/* Wiwo Thinking Orb, portado de neo.wiwo.me. Lo que se ve no es una esfera
+   rellena sino cintas de luz: vidrio, aurora, cáustica y un núcleo que late.
+   Todo escala desde --orbe-tamano; no hay medidas fijas. */
 
 .escena {
   --orbe-tamano: 40px;
@@ -7,6 +8,9 @@
   --lumen-b: rgba(59, 255, 0, 0.5);
   --lumen-c: rgba(248, 250, 215, 0.52);
   --aurora-opacidad: 0.86;
+  --velo-opacidad: 0.62;
+  --caustica-opacidad: 0.42;
+  --luz-opacidad: 0.86;
   --nucleo-brillo: 0.46;
   --destello-alfa: 0.68;
   --velocidad: 2600ms;
@@ -15,6 +19,7 @@
   --escala-b: 1.09;
   --escala-c: 0.98;
   --particulas: 0.82;
+  --desvio-x: 0px;
 
   position: relative;
   flex: none;
@@ -62,7 +67,10 @@
   z-index: 1;
   border-radius: 50%;
   border: 1px solid rgba(248, 250, 215, 0.18);
-  opacity: 0.46;
+  box-shadow:
+    0 0 calc(var(--orbe-tamano) * 0.2) rgba(66, 66, 255, 0.16),
+    inset 0 0 calc(var(--orbe-tamano) * 0.2) rgba(248, 250, 215, 0.06);
+  opacity: 0.12;
   pointer-events: none;
   transform: rotateX(62deg);
   animation: anillo 5200ms linear infinite;
@@ -77,53 +85,121 @@
   animation-direction: reverse;
 }
 
+/* Barrido vertical: solo cuando el orbe está escuchando. */
+.barrido {
+  position: absolute;
+  z-index: 3;
+  left: 14%;
+  right: 14%;
+  top: 50%;
+  height: calc(var(--orbe-tamano) * 0.07);
+  border-radius: var(--radio-pildora);
+  background: radial-gradient(ellipse at 50% 50%, rgba(59, 255, 0, 0.72), rgba(248, 250, 215, 0.32) 38%, transparent 76%);
+  filter: blur(calc(var(--orbe-tamano) * 0.03));
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Estelas de salida: la luz empuja hacia la interfaz mientras se genera. */
+.estela {
+  position: absolute;
+  z-index: 3;
+  right: 2%;
+  top: 50%;
+  width: 52%;
+  height: calc(var(--orbe-tamano) * 0.12);
+  border-radius: var(--radio-pildora);
+  background: linear-gradient(90deg, rgba(59, 255, 0, 0.62), rgba(248, 250, 215, 0.28), rgba(66, 66, 255, 0.42), transparent);
+  filter: blur(calc(var(--orbe-tamano) * 0.05));
+  opacity: 0;
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.estelaDos {
+  top: 42%;
+  width: 40%;
+}
+
+.estelaTres {
+  top: 59%;
+  width: 34%;
+}
+
 .orbe {
   position: relative;
   z-index: 2;
-  width: 84%;
-  aspect-ratio: 1;
+  width: 106%;
+  aspect-ratio: 1.32;
   border-radius: 46% 54% 52% 48% / 48% 42% 58% 52%;
-  opacity: 0.94;
+  opacity: 0.8;
   background:
-    radial-gradient(ellipse at 35% 25%, rgba(248, 250, 215, 0.28) 0 5%, transparent 22%),
-    radial-gradient(ellipse at 70% 43%, var(--lumen-a) 0 7%, transparent 30%),
-    radial-gradient(ellipse at 32% 72%, var(--lumen-b) 0 8%, transparent 32%),
+    radial-gradient(ellipse at 28% 66%, var(--lumen-b) 0 12%, transparent 62%),
+    radial-gradient(ellipse at 78% 42%, var(--lumen-a) 0 14%, transparent 64%),
+    radial-gradient(ellipse at 50% 46%, rgba(248, 250, 215, 0.09), transparent 54%),
     conic-gradient(
       from 118deg,
-      transparent 0 13%,
-      var(--lumen-b) 21%,
-      transparent 32%,
-      var(--lumen-c) 45%,
-      transparent 56%,
-      var(--lumen-a) 69%,
-      transparent 84% 100%
+      var(--lumen-b) 0 20%,
+      var(--lumen-c) 36%,
+      var(--lumen-a) 56%,
+      var(--lumen-b) 82%,
+      var(--lumen-b) 100%
     );
-  background-size: 148% 148%, 160% 160%, 168% 168%, 230% 230%;
+  background-size: 168% 168%, 176% 176%, 140% 140%, 210% 210%;
   background-blend-mode: screen;
-  -webkit-mask-image: radial-gradient(
-    ellipse at 50% 50%,
-    transparent 0 26%,
-    rgba(0, 0, 0, 0.76) 40%,
-    rgba(0, 0, 0, 0.48) 60%,
-    transparent 82%
-  );
-  mask-image: radial-gradient(
-    ellipse at 50% 50%,
-    transparent 0 26%,
-    rgba(0, 0, 0, 0.76) 40%,
-    rgba(0, 0, 0, 0.48) 60%,
-    transparent 82%
-  );
-  filter: saturate(1.7) brightness(1.14);
-  box-shadow:
-    0 0 calc(var(--orbe-tamano) * 0.6) rgba(66, 66, 255, 0.34),
-    0 0 calc(var(--orbe-tamano) * 0.45) rgba(59, 255, 0, 0.2);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 0 30%, rgba(0, 0, 0, 0.54) 58%, transparent 92%);
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 0 30%, rgba(0, 0, 0, 0.54) 58%, transparent 92%);
+  filter: blur(calc(var(--orbe-tamano) * 0.075)) saturate(1.45);
   animation:
     respirar var(--velocidad) var(--curva) infinite,
     campo var(--velocidad-flujo) linear infinite;
 }
 
+.orbe::before,
+.orbe::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Aurora envolvente: gira alrededor del vidrio y lo desborda. */
+.orbe::before {
+  inset: -16%;
+  background:
+    conic-gradient(
+      from 24deg,
+      transparent 0 9%,
+      var(--lumen-b) 16%,
+      transparent 30%,
+      var(--lumen-a) 48%,
+      transparent 62%,
+      var(--lumen-c) 74%,
+      transparent 100%
+    ),
+    radial-gradient(ellipse at 44% 46%, rgba(248, 250, 215, 0.18), transparent 38%);
+  filter: blur(calc(var(--orbe-tamano) * 0.08)) saturate(1.65);
+  opacity: calc(var(--aurora-opacidad) * 0.96);
+  mix-blend-mode: screen;
+  animation: girarAurora calc(var(--velocidad-flujo) * 1.08) linear infinite;
+}
+
+/* Reflejo suave del vidrio, arriba y a la izquierda. */
+.orbe::after {
+  inset: 12% 7% auto 13%;
+  height: 42%;
+  border-radius: 48% 52% 44% 56%;
+  background: radial-gradient(ellipse at 32% 28%, rgba(248, 250, 215, 0.6), rgba(248, 250, 215, 0.16) 38%, transparent 74%);
+  filter: blur(calc(var(--orbe-tamano) * 0.06));
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  animation: reflejo 5200ms var(--curva) infinite alternate;
+}
+
 .pulso,
+.velo,
+.caustica,
+.campoLuz,
 .aurora,
 .borde,
 .nucleo,
@@ -146,6 +222,55 @@
 
 .pulsoDos {
   animation-delay: 740ms;
+}
+
+.pulsoTres {
+  animation-delay: 1480ms;
+}
+
+/* Velo líquido: la viscosidad del vidrio, gira y se deforma con retraso. */
+.velo {
+  inset: -3%;
+  z-index: 1;
+  background:
+    conic-gradient(from 200deg, transparent 0 14%, rgba(248, 250, 215, 0.18), var(--lumen-a), transparent 52%, var(--lumen-b), transparent 86%),
+    radial-gradient(ellipse at 28% 22%, rgba(248, 250, 215, 0.2), transparent 36%);
+  filter: blur(calc(var(--orbe-tamano) * 0.07)) saturate(1.45);
+  mix-blend-mode: screen;
+  opacity: calc(var(--velo-opacidad) * 0.44);
+  animation: viscosidad 7200ms var(--curva) infinite;
+}
+
+/* Cáustica: los dibujos que deja la luz al atravesar el vidrio. */
+.caustica {
+  inset: -4%;
+  z-index: 2;
+  background: conic-gradient(
+    from 18deg,
+    transparent 0 18%,
+    rgba(248, 250, 215, 0.2),
+    transparent 42%,
+    rgba(66, 66, 255, 0.22),
+    transparent 72% 100%
+  );
+  filter: blur(calc(var(--orbe-tamano) * 0.06));
+  mix-blend-mode: screen;
+  opacity: calc(var(--caustica-opacidad) * 0.66);
+  animation: caustica 7600ms linear infinite;
+}
+
+/* Campo de luz: el foco que nada por la superficie. */
+.campoLuz {
+  inset: -8%;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse at 24% 18%, rgba(248, 250, 215, 0.5), rgba(248, 250, 215, 0.1) 28%, transparent 54%),
+    radial-gradient(circle at 70% 48%, var(--lumen-a), transparent 28%),
+    radial-gradient(circle at 38% 78%, var(--lumen-b), transparent 32%);
+  filter: blur(calc(var(--orbe-tamano) * 0.04));
+  mix-blend-mode: screen;
+  opacity: calc(var(--luz-opacidad) * 0.74);
+  animation: nadarLuz 5400ms var(--curva) infinite alternate;
 }
 
 .aurora {
@@ -202,21 +327,25 @@
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 5px), transparent 100%);
   mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 5px), transparent 100%);
-  filter: blur(1px);
-  opacity: 0.46;
+  filter: blur(calc(var(--orbe-tamano) * 0.03));
+  opacity: 0.16;
   animation: girar 4200ms linear infinite;
 }
 
 .nucleo {
-  inset: 18%;
+  inset: 16%;
   z-index: 5;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse at 50% 50%, rgba(248, 250, 215, 0.26), transparent 52%),
-    radial-gradient(ellipse at 54% 48%, var(--lumen-a), transparent 62%);
-  filter: blur(calc(var(--orbe-tamano) * 0.06)) saturate(1.5);
-  opacity: calc(var(--nucleo-brillo) * 0.6);
-  animation: nucleo 2400ms var(--curva) infinite;
+  border-radius: 48% 52% 46% 54% / 52% 46% 54% 48%;
+  background: radial-gradient(
+    ellipse at 48% 44%,
+    rgba(248, 250, 215, 0.34),
+    rgba(248, 250, 215, 0.12) 46%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  filter: blur(calc(var(--orbe-tamano) * 0.09)) saturate(1.3);
+  opacity: calc(var(--nucleo-brillo) * 0.9);
+  animation: nucleo 3600ms var(--curva) infinite;
 }
 
 .destello {
@@ -253,8 +382,8 @@
   mix-blend-mode: screen;
   pointer-events: none;
   transform-origin: 50% 50%;
-  animation: orbitar var(--orbita-velocidad, 5200ms) linear infinite;
   --orbita: calc(var(--orbe-tamano) * 0.46);
+  animation: orbitar var(--orbita-velocidad, 5200ms) linear infinite;
 }
 
 .particulaDos {
@@ -274,12 +403,15 @@
 /* ---------------------------------------------------------------- estados */
 
 .escena[data-estado='reposo'] {
-  --lumen-a: rgba(66, 66, 255, 0.56);
-  --lumen-b: rgba(59, 255, 0, 0.44);
-  --lumen-c: rgba(248, 250, 215, 0.5);
-  --aurora-opacidad: 0.6;
-  --nucleo-brillo: 0.34;
-  --destello-alfa: 0.5;
+  --lumen-a: rgba(66, 66, 255, 0.5);
+  --lumen-b: rgba(59, 255, 0, 0.36);
+  --lumen-c: rgba(248, 250, 215, 0.46);
+  --aurora-opacidad: 0.52;
+  --velo-opacidad: 0.4;
+  --caustica-opacidad: 0.26;
+  --luz-opacidad: 0.6;
+  --nucleo-brillo: 0.3;
+  --destello-alfa: 0.46;
   --velocidad: 7600ms;
   --velocidad-flujo: 9800ms;
   --escala-a: 0.92;
@@ -288,11 +420,19 @@
   --particulas: 0;
 }
 
+.escena[data-estado='reposo'] .anillo,
+.escena[data-estado='reposo'] .anilloAlterno {
+  opacity: 0.18;
+}
+
 .escena[data-estado='escuchando'] {
   --lumen-a: rgba(66, 66, 255, 0.5);
   --lumen-b: rgba(59, 255, 0, 0.72);
   --lumen-c: rgba(248, 250, 215, 0.52);
   --aurora-opacidad: 0.72;
+  --velo-opacidad: 0.56;
+  --caustica-opacidad: 0.34;
+  --luz-opacidad: 0.78;
   --nucleo-brillo: 0.32;
   --destello-alfa: 0.52;
   --velocidad: 3300ms;
@@ -303,15 +443,22 @@
   --particulas: 0.4;
 }
 
+.escena[data-estado='escuchando'] .barrido {
+  animation: barrido 2600ms var(--curva) infinite;
+}
+
 .escena[data-estado='pensando'] {
   --lumen-a: rgba(66, 66, 255, 0.62);
   --lumen-b: rgba(59, 255, 0, 0.5);
   --lumen-c: rgba(248, 250, 215, 0.52);
   --aurora-opacidad: 0.86;
-  --nucleo-brillo: 0.46;
-  --destello-alfa: 0.68;
   --velocidad: 2600ms;
   --velocidad-flujo: 3900ms;
+}
+
+.escena[data-estado='pensando'] .anillo {
+  animation-duration: 3400ms;
+  opacity: 0.6;
 }
 
 .escena[data-estado='generando'] {
@@ -319,6 +466,9 @@
   --lumen-b: rgba(59, 255, 0, 0.72);
   --lumen-c: rgba(248, 250, 215, 0.58);
   --aurora-opacidad: 0.98;
+  --velo-opacidad: 0.72;
+  --caustica-opacidad: 0.5;
+  --luz-opacidad: 0.94;
   --nucleo-brillo: 0.52;
   --destello-alfa: 0.82;
   --velocidad: 1850ms;
@@ -327,6 +477,24 @@
   --escala-b: 1.14;
   --escala-c: 1;
   --particulas: 1;
+  --desvio-x: calc(var(--orbe-tamano) * -0.04);
+}
+
+.escena[data-estado='generando'] .estela {
+  animation: estela 1900ms var(--curva) infinite;
+}
+
+.escena[data-estado='generando'] .estelaDos {
+  animation-delay: 420ms;
+}
+
+.escena[data-estado='generando'] .estelaTres {
+  animation-delay: 840ms;
+}
+
+.escena[data-estado='generando'] .auroraUno,
+.escena[data-estado='generando'] .auroraDos {
+  animation-duration: 1800ms;
 }
 
 .escena[data-estado='error'] {
@@ -334,6 +502,9 @@
   --lumen-b: rgba(179, 38, 30, 0.42);
   --lumen-c: rgba(248, 250, 215, 0.28);
   --aurora-opacidad: 0.36;
+  --velo-opacidad: 0.3;
+  --caustica-opacidad: 0.18;
+  --luz-opacidad: 0.44;
   --nucleo-brillo: 0.18;
   --destello-alfa: 0.28;
   --velocidad: 1500ms;
@@ -344,20 +515,25 @@
   --particulas: 0;
 }
 
+.escena[data-estado='error'] .aurora,
+.escena[data-estado='reposo'] .aurora {
+  filter: blur(calc(var(--orbe-tamano) * 0.1)) saturate(1.1);
+}
+
 /* ---------------------------------------------------------------- movimiento */
 
 @keyframes respirar {
   0%,
   100% {
-    transform: scale(var(--escala-a)) rotate(0deg);
+    transform: translate3d(var(--desvio-x), 0, 0) scale(var(--escala-a)) rotate(0deg);
     border-radius: 46% 54% 52% 48% / 48% 42% 58% 52%;
   }
   44% {
-    transform: scale(var(--escala-b)) rotate(4deg);
+    transform: translate3d(var(--desvio-x), 0, 0) scale(var(--escala-b)) rotate(4deg);
     border-radius: 52% 48% 45% 55% / 44% 55% 45% 56%;
   }
   72% {
-    transform: scale(var(--escala-c)) rotate(-3deg);
+    transform: translate3d(var(--desvio-x), 0, 0) scale(var(--escala-c)) rotate(-3deg);
     border-radius: 43% 57% 58% 42% / 54% 44% 56% 46%;
   }
 }
@@ -371,6 +547,63 @@
   }
   100% {
     background-position: 0% 48%, 74% 42%, 28% 78%, 0% 50%;
+  }
+}
+
+@keyframes girarAurora {
+  from {
+    transform: rotate(0deg) scale(0.96);
+  }
+  to {
+    transform: rotate(360deg) scale(1.04);
+  }
+}
+
+@keyframes reflejo {
+  from {
+    transform: rotate(-16deg) translate3d(-6%, -2%, 0) scale(0.96);
+    opacity: 0.18;
+  }
+  to {
+    transform: rotate(-4deg) translate3d(8%, 10%, 0) scale(1.08);
+    opacity: 0.42;
+  }
+}
+
+@keyframes viscosidad {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+    border-radius: 44% 56% 52% 48% / 48% 44% 56% 52%;
+  }
+  46% {
+    transform: rotate(156deg) scale(1.08);
+    border-radius: 58% 42% 46% 54% / 43% 57% 45% 55%;
+  }
+  72% {
+    transform: rotate(258deg) scale(0.96);
+    border-radius: 42% 58% 60% 40% / 56% 42% 58% 44%;
+  }
+}
+
+@keyframes caustica {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(-360deg) scale(1.04);
+  }
+}
+
+@keyframes nadarLuz {
+  0%,
+  100% {
+    transform: translate3d(-1%, -2%, 0) rotate(-4deg) scale(1);
+    opacity: calc(var(--luz-opacidad) * 0.5);
+  }
+  48% {
+    transform: translate3d(4%, 7%, 0) rotate(7deg) scale(1.05);
+    opacity: calc(var(--luz-opacidad) * 0.74);
   }
 }
 
@@ -415,12 +648,12 @@
 @keyframes nucleo {
   0%,
   100% {
-    transform: scale(0.9);
-    opacity: calc(var(--nucleo-brillo) * 0.42);
+    transform: scale(0.94) rotate(0deg);
+    opacity: calc(var(--nucleo-brillo) * 1.1);
   }
   52% {
-    transform: scale(1.22);
-    opacity: calc(var(--nucleo-brillo) * 0.7);
+    transform: scale(1.12) rotate(6deg);
+    opacity: calc(var(--nucleo-brillo) * 1.6);
   }
 }
 
@@ -466,14 +699,54 @@
 @keyframes anillo {
   0% {
     transform: rotateX(62deg) rotateZ(0deg) scale(0.96);
-    opacity: 0.28;
+    opacity: 0.08;
   }
   45% {
-    opacity: 0.62;
+    opacity: 0.2;
   }
   100% {
     transform: rotateX(62deg) rotateZ(360deg) scale(1.04);
-    opacity: 0.34;
+    opacity: 0.1;
+  }
+}
+
+@keyframes barrido {
+  0%,
+  100% {
+    transform: translateY(-260%) scaleX(0.62);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.92;
+  }
+  50% {
+    transform: translateY(0) scaleX(1);
+    opacity: 0.82;
+  }
+  82% {
+    opacity: 0.92;
+  }
+  99% {
+    transform: translateY(260%) scaleX(0.72);
+    opacity: 0;
+  }
+}
+
+@keyframes estela {
+  0% {
+    transform: translateX(-40%) scaleX(0.15);
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.95;
+  }
+  62% {
+    transform: translateX(18%) scaleX(1);
+    opacity: 0.78;
+  }
+  100% {
+    transform: translateX(72%) scaleX(0.2);
+    opacity: 0;
   }
 }
 
