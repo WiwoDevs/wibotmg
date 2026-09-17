@@ -27,3 +27,17 @@ export type { EstadoBloqueo } from './intentos.js';
 
 export { registrarConsulta, listarAuditoria } from './auditoria.js';
 export type { RegistroAuditoria } from './auditoria.js';
+
+export {
+  PREFIJO_TOKEN,
+  crearTokenServicio,
+  buscarTokenPorNombre,
+  validarTokenServicio,
+  origenAutorizado,
+  origenConocido,
+  listarTokensServicio,
+  revocarTokenServicio,
+  normalizarNombreToken,
+  normalizarOrigen,
+} from './tokens.js';
+export type { TokenServicio } from './tokens.js';

@@ -1,6 +1,7 @@
 import { registrarConsulta } from '@wibot/auth';
+import { autenticarPeticion, cabecerasCors, responderJson, responderPreflight } from '@/lib/acceso';
 import { conversar } from '@/lib/gemini';
-import { obtenerIp, obtenerUsuarioActual } from '@/lib/sesion';
+import { obtenerIp } from '@/lib/sesion';
 import type { EventoChat, TurnoEnviado } from '@/lib/tipos';
 
 export const runtime = 'nodejs';
@@ -22,29 +23,33 @@ function normalizarHistorial(valor: unknown): TurnoEnviado[] {
     .map((turno) => ({ autor: turno.autor as 'persona' | 'wibot', texto: String(turno.texto) }));
 }
 
+/** Deja que una página externa autorizada consulte el chat desde el navegador. */
+export function OPTIONS(peticion: Request): Response {
+  return responderPreflight(peticion);
+}
+
 /**
  * Responde una pregunta de la persona con un flujo NDJSON de eventos:
  * consultas en curso, bloques de datos y el texto del Thinking Orb a medida que se genera.
  */
 export async function POST(peticion: Request): Promise<Response> {
-  const usuario = await obtenerUsuarioActual();
-  if (!usuario) {
-    return Response.json({ error: 'Tu sesión expiró. Volvé a entrar.' }, { status: 401 });
-  }
+  const acceso = await autenticarPeticion(peticion);
+  if (!acceso.ok) return acceso.respuesta;
+  const { actor } = acceso;
 
   let cuerpo: CuerpoPeticion;
   try {
     cuerpo = (await peticion.json()) as CuerpoPeticion;
   } catch {
-    return Response.json({ error: 'El cuerpo de la petición no es JSON válido.' }, { status: 400 });
+    return responderJson({ error: 'El cuerpo de la petición no es JSON válido.' }, 400, actor.origen);
   }
 
   const pregunta = typeof cuerpo.pregunta === 'string' ? cuerpo.pregunta.trim() : '';
   if (pregunta === '') {
-    return Response.json({ error: 'Escribí una pregunta.' }, { status: 400 });
+    return responderJson({ error: 'Escribí una pregunta.' }, 400, actor.origen);
   }
   if (pregunta.length > 2000) {
-    return Response.json({ error: 'La pregunta es demasiado larga.' }, { status: 400 });
+    return responderJson({ error: 'La pregunta es demasiado larga.' }, 400, actor.origen);
   }
 
   const historial = normalizarHistorial(cuerpo.historial);
@@ -69,7 +74,7 @@ export async function POST(peticion: Request): Promise<Response> {
         emitir({ tipo: 'error', mensaje });
         emitir({ tipo: 'fin' });
       } finally {
-        registrarConsulta(usuario.id, usuario.correo, pregunta, herramientasUsadas, ip);
+        registrarConsulta(actor.usuarioId, actor.etiqueta, pregunta, herramientasUsadas, ip);
         controlador.close();
       }
     },
@@ -77,6 +82,7 @@ export async function POST(peticion: Request): Promise<Response> {
 
   return new Response(flujo, {
     headers: {
+      ...cabecerasCors(actor.origen),
       'Content-Type': 'application/x-ndjson; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Accel-Buffering': 'no',
