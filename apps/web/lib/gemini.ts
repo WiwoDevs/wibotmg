@@ -3,7 +3,8 @@ import { hoyLocal, herramientasComoJsonSchema, obtenerHerramienta } from '@wibot
 import { esModoDiagnostico, recortar, registrarEvento } from './diagnostico';
 import type { EventoChat, TurnoEnviado } from './tipos';
 
-const MAX_RONDAS_DE_HERRAMIENTAS = 6;
+/** Rondas de consulta permitidas antes de exigirle al modelo que cierre. */
+const MAX_RONDAS_DE_HERRAMIENTAS = Number.parseInt(process.env.WIBOT_MAX_RONDAS ?? '', 10) || 12;
 
 interface LlamadaHerramienta {
   id: string;
@@ -63,6 +64,8 @@ Cómo trabajás:
 - Elegí la fuente por el tema: cupones para volumen de servicio, encuestas para satisfacción, leads para lo comercial, llamadas para el contact center.
 - Antes de filtrar por un nombre que no estás seguro de que exista, confirmalo con valores_dimension.
 - consulta_sql es el último recurso; indicá la fuente y mirá antes esquema_cupones o esquema_gestion.
+- No uses listar_tablas ni describir_tabla salvo que alguien pregunte por la estructura de la base: son tablas de WordPress que no aportan al negocio y gastan pasos.
+- Si te piden varios bloques en una sola pregunta, pedí todas las consultas que puedas en la misma tanda en vez de una por vez.
 - Si una pregunta necesita varias consultas, hacelas todas antes de responder.
 - El NPS es un índice de -100 a 100, no un porcentaje: decí "NPS 61", nunca "61%".
 - Los leads y las llamadas que hay cargados son solo de agosto de 2026: no los presentes como histórico ni los compares con meses que no existen.
@@ -161,6 +164,7 @@ async function ejecutarRonda(
   configuracion: ConfiguracionModelo,
   mensajes: MensajeModelo[],
   alRecibirTexto: (delta: string) => void,
+  sinHerramientas = false,
 ): Promise<RondaStream> {
   const comenzoEn = Date.now();
   let respuesta: Response;
@@ -174,8 +178,9 @@ async function ejecutarRonda(
       body: JSON.stringify({
         model: configuracion.modelo,
         messages: mensajes,
-        tools: construirHerramientas(),
-        tool_choice: 'auto',
+        ...(sinHerramientas
+          ? {}
+          : { tools: construirHerramientas(), tool_choice: 'auto' }),
         stream: true,
         max_tokens: 2048,
         reasoning_effort: 'low',
@@ -450,9 +455,48 @@ export async function* conversar(
     }
   }
 
-  yield {
-    tipo: 'error',
-    mensaje: 'La consulta necesitó demasiados pasos. Probá acotar la pregunta a un período o a un concesionario.',
-  };
+  // Agotadas las rondas, en vez de tirar todo lo consultado se le pide al modelo
+  // que redacte la respuesta con lo que ya tiene sobre la mesa.
+  mensajes.push({
+    role: 'user',
+    content:
+      'Ya no podés hacer más consultas. Respondé ahora con los datos que ya obtuviste, diciendo explícitamente qué parte de la pregunta quedó sin cubrir.',
+  });
+
+  const pendientesCierre: EventoChat[] = [];
+  try {
+    const cierre = await ejecutarRonda(
+      configuracion,
+      mensajes,
+      (delta) => {
+        pendientesCierre.push({ tipo: 'texto', delta });
+      },
+      true,
+    );
+
+    for (const evento of pendientesCierre) yield evento;
+
+    yield* emitirDiagnostico({
+      tipo: 'ronda',
+      titulo: 'Ronda de cierre: se agotó el tope de consultas',
+      duracionMs: cierre.duracionMs,
+      detalle: {
+        topeRondas: MAX_RONDAS_DE_HERRAMIENTAS,
+        caracteresDeTexto: cierre.texto.length,
+      },
+    });
+
+    if (cierre.texto.trim() === '') {
+      yield {
+        tipo: 'error',
+        mensaje:
+          'La consulta necesitó más pasos de los permitidos. Probá pedir menos bloques por vez, o acotarla a un período o a un concesionario.',
+      };
+    }
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : String(error);
+    yield { tipo: 'error', mensaje };
+  }
+
   yield { tipo: 'fin' };
 }
