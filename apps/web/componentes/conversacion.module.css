@@ -77,11 +77,31 @@
   letter-spacing: 0.08em;
 }
 
+.estado {
+  transition: background-color 200ms var(--curva), color 200ms var(--curva);
+}
+
 .punto {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+
+.estado:not(.estadoInactivo) .punto {
+  animation: latirPunto 1400ms var(--curva) infinite;
+}
+
+@keyframes latirPunto {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--senal-media);
+  }
+  55% {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 5px rgba(66, 66, 255, 0);
+  }
 }
 
 .estadoInactivo {
@@ -190,6 +210,7 @@
 
 .conversacion {
   overflow-y: auto;
+  scroll-behavior: smooth;
   overscroll-behavior: contain;
   padding: 22px 18px 10px;
   display: flex;
@@ -202,12 +223,13 @@
   flex-direction: column;
   gap: 6px;
   max-width: 88%;
-  animation: entrar 240ms var(--curva-enfatica) both;
+  animation: entrar 460ms var(--curva) both;
 }
 
 .turnoPersona {
   align-self: flex-end;
   align-items: flex-end;
+  animation-name: entrarPersona;
 }
 
 .turnoOrbe {
@@ -218,7 +240,59 @@
 @keyframes entrar {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(18px) scale(0.97);
+    filter: blur(6px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes entrarPersona {
+  from {
+    opacity: 0;
+    transform: translate(14px, 14px) scale(0.96);
+    filter: blur(5px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Cada palabra que llega del stream entra sola: la respuesta se escribe,
+   no aparece de golpe. Las claves estables hacen que solo se anime lo nuevo. */
+.palabra {
+  display: inline-block;
+  animation: aparecerPalabra 380ms var(--curva) both;
+}
+
+@keyframes aparecerPalabra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes aparecerSuave {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -240,6 +314,22 @@
   border: 1px solid var(--linea);
   border-bottom-left-radius: var(--radio-chico);
   box-shadow: var(--sombra-1);
+  transition: box-shadow 260ms var(--curva);
+}
+
+/* Mientras el turno se está escribiendo, la burbuja respira. */
+.burbujaEnCurso {
+  animation: respirarBurbuja 2400ms var(--curva) infinite;
+}
+
+@keyframes respirarBurbuja {
+  0%,
+  100% {
+    box-shadow: var(--sombra-1);
+  }
+  50% {
+    box-shadow: 0 10px 30px rgba(66, 66, 255, 0.16);
+  }
 }
 
 .burbujaPersona {
@@ -255,33 +345,102 @@
   font-variant-numeric: tabular-nums;
   color: var(--texto-suave);
   padding-inline: 8px;
+  animation: aparecerSuave 420ms var(--curva) both;
+  animation-delay: 140ms;
+}
+
+/* Mientras no llega ni una palabra, la burbuja late en vez de quedar vacía. */
+.pensando {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 1.2em;
+}
+
+.pensando span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--senal);
+  animation: saltarPunto 1200ms var(--curva) infinite;
+}
+
+.pensando span:nth-child(2) {
+  background: #9adbb0;
+  animation-delay: 160ms;
+}
+
+.pensando span:nth-child(3) {
+  background: var(--energia);
+  animation-delay: 320ms;
+}
+
+@keyframes saltarPunto {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.82);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-5px) scale(1);
+    opacity: 1;
+  }
 }
 
 .cursor {
   display: inline-block;
-  width: 2px;
-  height: 1em;
-  margin-left: 2px;
-  translate: 0 2px;
-  background: var(--senal);
-  animation: latir 1s steps(2, start) infinite;
+  width: 8px;
+  height: 1.05em;
+  margin-left: 3px;
+  translate: 0 3px;
+  border-radius: var(--radio-pildora);
+  background: var(--degradado);
+  box-shadow: 0 0 12px rgba(66, 66, 255, 0.45);
+  animation: latir 1100ms var(--curva) infinite;
 }
 
 @keyframes latir {
-  to {
-    opacity: 0;
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scaleY(0.68);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
   }
 }
 
 /* ---------------------------------------------------------------- actividad */
 
 .actividad {
+  position: relative;
   width: 100%;
   border: 1px solid var(--linea);
   border-radius: var(--radio-bloque);
   background: var(--superficie);
   box-shadow: var(--sombra-1);
   overflow: hidden;
+  animation: entrar 420ms var(--curva) both;
+}
+
+/* Un brillo cruza el bloque mientras la consulta está viva. */
+.actividad::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(66, 66, 255, 0.08) 50%, transparent 70%);
+  animation: barrerBrillo 2200ms var(--curva) infinite;
+  pointer-events: none;
+}
+
+@keyframes barrerBrillo {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .actividadFila {
@@ -299,9 +458,11 @@
 }
 
 .actividadNombre {
+  display: inline-block;
   font-family: var(--fuente-datos), ui-monospace, monospace;
   font-size: 12px;
   color: var(--texto);
+  animation: aparecerPalabra 320ms var(--curva) both;
 }
 
 .barra {
@@ -337,7 +498,40 @@
   background: var(--superficie);
   box-shadow: var(--sombra-1);
   overflow: hidden;
+  animation: entrarBloque 520ms var(--curva) both;
 }
+
+@keyframes entrarBloque {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+    filter: blur(8px);
+  }
+  55% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Las filas y las lecturas caen en cascada, no todas juntas. */
+.fila,
+.lectura {
+  animation: aparecerSuave 420ms var(--curva) both;
+}
+
+.fila:nth-child(1), .lectura:nth-child(1) { animation-delay: 60ms; }
+.fila:nth-child(2), .lectura:nth-child(2) { animation-delay: 110ms; }
+.fila:nth-child(3), .lectura:nth-child(3) { animation-delay: 160ms; }
+.fila:nth-child(4), .lectura:nth-child(4) { animation-delay: 210ms; }
+.fila:nth-child(5), .lectura:nth-child(5) { animation-delay: 260ms; }
+.fila:nth-child(6), .lectura:nth-child(6) { animation-delay: 310ms; }
+.fila:nth-child(7), .lectura:nth-child(7) { animation-delay: 360ms; }
+.fila:nth-child(8), .lectura:nth-child(8) { animation-delay: 410ms; }
+.fila:nth-child(n + 9), .lectura:nth-child(n + 9) { animation-delay: 460ms; }
 
 .bloqueEncabezado {
   display: flex;
@@ -472,6 +666,24 @@
   height: 100%;
   background: var(--degradado);
   border-radius: inherit;
+  transform-origin: left center;
+  animation: crecerMedidor 760ms var(--curva) both;
+  animation-delay: 240ms;
+}
+
+.medidorLeads {
+  transform-origin: left center;
+  animation: crecerMedidor 760ms var(--curva) both;
+  animation-delay: 240ms;
+}
+
+@keyframes crecerMedidor {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Barra segmentada por temperatura de lead. */
@@ -640,6 +852,7 @@
 }
 
 .consultaDetalle {
+  animation: aparecerSuave 320ms var(--curva) both;
   margin: 4px 0 0;
   padding: 9px 12px;
   border: 1px solid var(--linea);
@@ -666,6 +879,27 @@
   font-size: 13px;
 }
 
+.error {
+  animation: entrarError 480ms var(--curva) both;
+}
+
+@keyframes entrarError {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .error svg {
   color: var(--peligro);
   flex: none;
@@ -681,6 +915,15 @@
   padding: 18px 4px 8px;
 }
 
+.apertura > * {
+  animation: entrar 620ms var(--curva) both;
+}
+
+.apertura > *:nth-child(1) { animation-delay: 0ms; }
+.apertura > *:nth-child(2) { animation-delay: 120ms; }
+.apertura > *:nth-child(3) { animation-delay: 220ms; }
+.apertura > *:nth-child(4) { animation-delay: 320ms; }
+
 .aperturaOrbe {
   position: relative;
   display: grid;
@@ -691,11 +934,38 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at 52% 38%, rgba(66, 66, 255, 0.38), transparent 32%),
-    radial-gradient(circle at 18% 82%, rgba(59, 255, 0, 0.2), transparent 32%),
-    radial-gradient(circle at 74% 18%, rgba(248, 250, 215, 0.12), transparent 34%),
+    radial-gradient(circle at 70% 46%, rgba(66, 66, 255, 0.72), transparent 62%),
+    radial-gradient(circle at 20% 74%, rgba(59, 255, 0, 0.52), transparent 60%),
+    radial-gradient(circle at 44% 22%, rgba(154, 219, 176, 0.34), transparent 58%),
     linear-gradient(145deg, #292929 0%, #303030 58%, #232323 100%);
   box-shadow: var(--sombra-2);
+}
+
+/* El degradado de marca se mueve por debajo de todo el escenario. */
+.aperturaOrbe::after {
+  content: '';
+  position: absolute;
+  inset: auto -18% -30% -18%;
+  height: 62%;
+  z-index: 0;
+  background: var(--degradado-animado);
+  background-size: 280% 280%;
+  filter: blur(46px);
+  opacity: 0.3;
+  animation: desplazarDegradado 7800ms var(--curva) infinite;
+  pointer-events: none;
+}
+
+@keyframes desplazarDegradado {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Retícula y haz del escenario Neo: la luz del orbe cae sobre una cuadrícula. */
@@ -709,7 +979,7 @@
     linear-gradient(180deg, rgba(248, 250, 215, 0.07) 1px, transparent 1px),
     linear-gradient(122deg, transparent 16%, rgba(248, 250, 215, 0.3) 49%, transparent 72%);
   background-size: 54px 54px, 54px 54px, auto;
-  opacity: 0.42;
+  opacity: 0.16;
   mix-blend-mode: screen;
   pointer-events: none;
 }
@@ -773,10 +1043,25 @@
   scale: 0.99;
 }
 
+.sugerencia {
+  animation: aparecerSuave 460ms var(--curva) both;
+}
+
+.sugerencia:nth-child(1) { animation-delay: 380ms; }
+.sugerencia:nth-child(2) { animation-delay: 460ms; }
+.sugerencia:nth-child(3) { animation-delay: 540ms; }
+.sugerencia:nth-child(4) { animation-delay: 620ms; }
+.sugerencia:nth-child(n + 5) { animation-delay: 700ms; }
+
 .sugerenciaFlecha {
   color: var(--texto-suave);
   flex: none;
   rotate: 90deg;
+  transition: transform 200ms var(--curva), color 200ms var(--curva);
+}
+
+.sugerencia:hover .sugerenciaFlecha {
+  transform: translateY(3px);
 }
 
 .sugerencia:hover .sugerenciaFlecha {
@@ -848,8 +1133,13 @@
   transition-timing-function: var(--curva);
 }
 
+.enviar:hover:not(:disabled) {
+  scale: 1.07;
+  box-shadow: 0 10px 26px rgba(66, 66, 255, 0.36);
+}
+
 .enviar:active {
-  scale: 0.96;
+  scale: 0.94;
 }
 
 .enviar:disabled {

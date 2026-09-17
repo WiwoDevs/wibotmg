@@ -48,10 +48,18 @@ export function OrbePensante({ tamano, estado = 'reposo', etiqueta, conEscenario
       <span className={estilos.halo} aria-hidden="true" />
       <span className={estilos.anillo} aria-hidden="true" />
       <span className={estilos.anilloAlterno} aria-hidden="true" />
+      <span className={estilos.barrido} aria-hidden="true" />
+      <span className={estilos.estela} aria-hidden="true" />
+      <span className={`${estilos.estela} ${estilos.estelaDos}`} aria-hidden="true" />
+      <span className={`${estilos.estela} ${estilos.estelaTres}`} aria-hidden="true" />
 
       <div className={estilos.orbe} aria-hidden="true">
         <span className={estilos.pulso} />
         <span className={`${estilos.pulso} ${estilos.pulsoDos}`} />
+        <span className={`${estilos.pulso} ${estilos.pulsoTres}`} />
+        <span className={estilos.velo} />
+        <span className={estilos.caustica} />
+        <span className={estilos.campoLuz} />
         <span className={`${estilos.aurora} ${estilos.auroraUno}`} />
         <span className={`${estilos.aurora} ${estilos.auroraDos}`} />
         <span className={`${estilos.aurora} ${estilos.auroraTres}`} />
