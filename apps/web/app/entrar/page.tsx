@@ -23,7 +23,7 @@ export default async function PaginaEntrar({ searchParams }: Props) {
     return (
       <main className={estilos.pantalla}>
         <div className={estilos.tarjeta}>
-          <h1 className={estilos.titulo}>WiBot todavía no tiene cuentas</h1>
+          <h1 className={estilos.titulo}>WiWO Me todavía no tiene cuentas</h1>
           <p className={estilos.introduccion}>
             Nadie puede entrar hasta que se cree la primera. En el servidor, desde la raíz del
             proyecto:

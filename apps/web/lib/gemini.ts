@@ -55,7 +55,7 @@ interface ConfiguracionModelo {
 function obtenerConfiguracionModelo(): ConfiguracionModelo {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error('Falta GEMINI_API_KEY en el entorno. WiBot no puede responder sin modelo.');
+    throw new Error('Falta GEMINI_API_KEY en el entorno. El Thinking Orb no puede responder sin modelo.');
   }
   return {
     apiKey,
@@ -66,7 +66,7 @@ function obtenerConfiguracionModelo(): ConfiguracionModelo {
 
 /** Construye la instrucción de sistema, con la fecha de hoy ya resuelta. */
 function construirInstruccionDeSistema(): string {
-  return `Sos WiBot, la inteligencia ejecutiva de WIWO sobre la operación de cupones de servicio de MG Contact en Chile.
+  return `Sos el Thinking Orb de WiWO Me, la inteligencia ejecutiva de WIWO sobre la operación de cupones de servicio de MG Contact en Chile.
 
 Hoy es ${hoyLocal()}.
 

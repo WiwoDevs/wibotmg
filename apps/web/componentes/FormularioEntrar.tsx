@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MarcaWiBot } from './MarcaWiBot';
+import { OrbePensante } from './OrbePensante';
 import { IconoAlerta, IconoEnviar } from './Iconos';
 import estilos from './entrar.module.css';
 
@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * Pantalla de entrada a WiBot. Cubre los dos momentos del acceso: iniciar
+ * Pantalla de entrada a WiWO Me. Cubre los dos momentos del acceso: iniciar
  * sesión y, si la cuenta todavía tiene la contraseña temporal, cambiarla.
  */
 export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, correoEnSesion }: Props) {
@@ -100,10 +100,10 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
     <main className={estilos.pantalla}>
       <div className={estilos.tarjeta}>
         <div className={estilos.marca}>
-          <MarcaWiBot tamano={44} activo={enviando} />
+          <OrbePensante tamano={56} estado={enviando ? 'generando' : 'reposo'} />
           <div>
-            <h1 className={estilos.titulo}>WiBot</h1>
-            <p className={estilos.bajada}>WIWO · Inteligencia ejecutiva</p>
+            <h1 className={estilos.titulo}>WiWO Me</h1>
+            <p className={estilos.bajada}>Thinking Orb · Inteligencia ejecutiva</p>
           </div>
         </div>
 

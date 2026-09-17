@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Pantalla única de WiBot. Comprueba la sesión antes de renderizar nada:
+ * Pantalla única de WiWO Me. Comprueba la sesión antes de renderizar nada:
  * el middleware solo mira si la cookie existe, acá se valida de verdad.
  */
 export default async function Pagina() {

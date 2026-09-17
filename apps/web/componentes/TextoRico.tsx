@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import estilos from './wibot.module.css';
+import estilos from './conversacion.module.css';
 
 /**
  * Renderiza el texto del modelo respetando el único marcado que usa: **negrita**.

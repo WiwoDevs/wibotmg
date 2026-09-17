@@ -8,7 +8,7 @@ import {
   formatearPorcentaje,
 } from '@/lib/formato';
 import { IconoPrivacidad } from './Iconos';
-import estilos from './wibot.module.css';
+import estilos from './conversacion.module.css';
 
 interface Periodo {
   desde: string;
