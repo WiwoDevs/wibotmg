@@ -20,10 +20,10 @@ import { PanelDiagnostico } from './PanelDiagnostico';
 import estilos from './conversacion.module.css';
 
 const SUGERENCIAS = [
-  '¿Cómo viene la operación este mes?',
-  '¿Qué asesor de Salazar Israel gestionó más cupones en los últimos 30 días?',
-  'Comparame los locales por volumen del mes pasado',
-  '¿Qué modelos son los que más entran a mantenimiento?',
+  '¿Cómo viene el negocio este mes?',
+  '¿Qué punto de venta convierte mejor sus leads?',
+  '¿Cuántos leads calientes hay sin cerrar y de qué origen vienen?',
+  '¿Cómo viene el NPS de posventa por concesionario?',
 ];
 
 const NOMBRE_HERRAMIENTA: Record<string, string> = {

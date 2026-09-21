@@ -132,7 +132,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     nombre: 'resumen_operacion',
     titulo: 'Resumen de la operación',
     descripcion:
-      'Fotografía general de un período: cuántos cupones de servicio se emitieron y cuántos concesionarios, locales, asesores, clientes y vehículos distintos participaron, más el desglose por tipo de documento. Es la herramienta por defecto para preguntas del tipo "cómo va el día" o "cuántos cupones llevamos".',
+      'Volumen de la operación de taller en un período: cuántos cupones de servicio se emitieron y cuántos concesionarios, locales, asesores, clientes y vehículos distintos participaron, más el desglose por tipo de documento. Cubre solo la posventa: para preguntas de negocio o de "cómo vamos" es el complemento, no el punto de partida, que es leads.',
     esquema: { ...periodoShape, ...filtrosShape },
     formato: 'resumen',
     ejecutar: (argumentos) => resumenOperacion(extraerPeriodo(argumentos), extraerFiltros(argumentos)),
@@ -319,7 +319,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     nombre: 'leads',
     titulo: 'Leads del CRM',
     descripcion:
-      'Leads comerciales con su temperatura (Super Caliente, Caliente, Tibio, Frío), agrupados por valoración, concesionario, punto de venta, modelo de interés, estado, origen o vendedor. Responde "cuántos leads calientes hay", "qué punto de venta recibe más", "cuántos se convirtieron".',
+      'Lo comercial: leads del CRM con su temperatura (Super Caliente, Caliente, Tibio, Frío) y su conversión en venta, agrupados por valoración, concesionario, punto de venta, modelo de interés, estado, origen o vendedor. Es la herramienta por defecto para preguntas de negocio: "cómo vamos", "cuántos leads calientes hay", "qué punto de venta recibe más", "cuántos se convirtieron".',
     esquema: {
       agrupar_por: z
         .enum(['valoracion', 'concesionario', 'punto_venta', 'modelo_interes', 'estado', 'origen', 'utm_origen', 'dueno', 'fecha', 'total'])
