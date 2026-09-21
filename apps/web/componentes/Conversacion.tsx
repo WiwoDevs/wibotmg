@@ -20,7 +20,7 @@ import { PanelDiagnostico } from './PanelDiagnostico';
 import estilos from './conversacion.module.css';
 
 const SUGERENCIAS = [
-  '¿Qué punto de venta convierte mejor sus leads?',
+  '¿Qué punto de venta recibe más leads y con qué temperatura?',
   '¿Cuántos leads calientes hay sin cerrar y de qué origen vienen?',
   '¿Cómo viene el volumen de llamadas por anexo?',
   '¿Qué local emitió más cupones de servicio el mes pasado?',
