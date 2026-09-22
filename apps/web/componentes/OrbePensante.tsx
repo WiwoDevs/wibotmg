@@ -1,18 +1,13 @@
+'use client';
+
 import type { CSSProperties } from 'react';
+import { useIdioma } from './ProveedorIdioma';
 import estilos from './orbe.module.css';
 
 /** Estados del orbe, del más quieto al más activo, más el de falla. */
 export type EstadoOrbe = 'reposo' | 'escuchando' | 'pensando' | 'generando' | 'error';
 
 const TAMANO_POR_DEFECTO = 40;
-
-const DESCRIPCION: Record<EstadoOrbe, string> = {
-  reposo: 'Thinking Orb en reposo',
-  escuchando: 'Thinking Orb escuchando',
-  pensando: 'Thinking Orb pensando',
-  generando: 'Thinking Orb respondiendo',
-  error: 'Thinking Orb con un problema',
-};
 
 interface Props {
   /** Diámetro en píxeles. Los valores no positivos caen al tamaño por defecto. */
@@ -34,6 +29,7 @@ interface Props {
  * @param conEscenario Si dibuja su propio disco de tinta.
  */
 export function OrbePensante({ tamano, estado = 'reposo', etiqueta, conEscenario = true }: Props) {
+  const { textos } = useIdioma();
   const diametro = typeof tamano === 'number' && Number.isFinite(tamano) && tamano > 0 ? tamano : TAMANO_POR_DEFECTO;
   const variables = { '--orbe-tamano': `${diametro}px` } as CSSProperties;
 
@@ -43,7 +39,7 @@ export function OrbePensante({ tamano, estado = 'reposo', etiqueta, conEscenario
       data-estado={estado}
       style={variables}
       role="img"
-      aria-label={etiqueta ?? DESCRIPCION[estado]}
+      aria-label={etiqueta ?? textos.chat.orbe[estado]}
     >
       <span className={estilos.halo} aria-hidden="true" />
       <span className={estilos.anillo} aria-hidden="true" />

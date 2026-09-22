@@ -1,6 +1,8 @@
 import 'server-only';
 import { origenAutorizado, origenConocido, validarTokenServicio } from '@wibot/auth';
+import { idiomaDePeticion } from '@/lib/idioma-servidor';
 import { obtenerUsuarioActual } from '@/lib/sesion';
+import { textosServidor } from '@/lib/textos/servidor';
 
 /**
  * Quien hace la petición, sea una persona con sesión abierta o una página
@@ -88,17 +90,15 @@ function leerBearer(peticion: Request): string | undefined {
 export async function autenticarPeticion(peticion: Request): Promise<ResultadoAcceso> {
   const origen = peticion.headers.get('origin');
   const bearer = leerBearer(peticion);
+  const textos = textosServidor[idiomaDePeticion(peticion)].acceso;
 
   if (bearer !== undefined) {
     const registro = validarTokenServicio(bearer);
     if (!registro) {
-      return { ok: false, respuesta: responderJson({ error: 'Token de servicio inválido o revocado.' }, 401, null) };
+      return { ok: false, respuesta: responderJson({ error: textos.tokenInvalido }, 401, null) };
     }
     if (!origenAutorizado(registro, origen)) {
-      return {
-        ok: false,
-        respuesta: responderJson({ error: 'Este origen no está autorizado para el token.' }, 403, null),
-      };
+      return { ok: false, respuesta: responderJson({ error: textos.origenNoAutorizado }, 403, null) };
     }
     return {
       ok: true,
@@ -108,7 +108,7 @@ export async function autenticarPeticion(peticion: Request): Promise<ResultadoAc
 
   const usuario = await obtenerUsuarioActual();
   if (!usuario) {
-    return { ok: false, respuesta: responderJson({ error: 'Tu sesión expiró. Volvé a entrar.' }, 401, null) };
+    return { ok: false, respuesta: responderJson({ error: textos.sesionExpirada }, 401, null) };
   }
   // La sesión por cookie es de la propia aplicación: no se le abre CORS a nadie.
   return { ok: true, actor: { tipo: 'usuario', usuarioId: usuario.id, etiqueta: usuario.correo, origen: null } };

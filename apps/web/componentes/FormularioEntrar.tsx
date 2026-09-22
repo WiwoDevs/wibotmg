@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OrbePensante } from './OrbePensante';
 import { IconoAlerta, IconoEnviar } from './Iconos';
+import { useIdioma } from './ProveedorIdioma';
+import { SelectorIdioma } from './SelectorIdioma';
 import estilos from './entrar.module.css';
 
 interface Props {
@@ -20,6 +22,7 @@ interface Props {
  */
 export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, correoEnSesion }: Props) {
   const router = useRouter();
+  const t = useIdioma().textos.entrar;
   const [paso, setPaso] = useState<'entrar' | 'cambiar'>(cambioObligatorio ? 'cambiar' : 'entrar');
   const [correo, setCorreo] = useState(correoEnSesion ?? '');
   const [contrasena, setContrasena] = useState('');
@@ -44,7 +47,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
       };
 
       if (!respuesta.ok) {
-        setError(datos.error ?? 'No se pudo iniciar sesión.');
+        setError(datos.error ?? t.errorEntrar);
         return;
       }
 
@@ -58,7 +61,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
       router.replace(volver);
       router.refresh();
     } catch {
-      setError('No se pudo contactar al servidor. Revisá tu conexión.');
+      setError(t.errorConexion);
     } finally {
       setEnviando(false);
     }
@@ -69,7 +72,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
     setError(null);
 
     if (nueva !== repetida) {
-      setError('Las dos contraseñas nuevas no coinciden.');
+      setError(t.noCoinciden);
       return;
     }
 
@@ -83,14 +86,14 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
       const datos = (await respuesta.json()) as { error?: string };
 
       if (!respuesta.ok) {
-        setError(datos.error ?? 'No se pudo cambiar la contraseña.');
+        setError(datos.error ?? t.errorCambiar);
         return;
       }
 
       router.replace(volver);
       router.refresh();
     } catch {
-      setError('No se pudo contactar al servidor. Revisá tu conexión.');
+      setError(t.errorConexion);
     } finally {
       setEnviando(false);
     }
@@ -98,23 +101,24 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
 
   return (
     <main className={estilos.pantalla}>
+      <div className={estilos.idioma}>
+        <SelectorIdioma />
+      </div>
       <div className={estilos.tarjeta}>
         <div className={estilos.marca}>
           <OrbePensante tamano={56} estado={enviando ? 'generando' : 'reposo'} />
           <div>
             <h1 className={estilos.titulo}>WiWO Me</h1>
-            <p className={estilos.bajada}>Thinking Orb · Inteligencia ejecutiva</p>
+            <p className={estilos.bajada}>{t.bajada}</p>
           </div>
         </div>
 
         {paso === 'entrar' ? (
           <form className={estilos.formulario} onSubmit={iniciarSesion}>
-            <p className={estilos.introduccion}>
-              Esta base tiene datos de clientes y de la operación. Entrá con la cuenta que te dieron.
-            </p>
+            <p className={estilos.introduccion}>{t.introduccionEntrar}</p>
 
             <label className={estilos.campo}>
-              <span className={estilos.etiqueta}>Correo</span>
+              <span className={estilos.etiqueta}>{t.correo}</span>
               <input
                 className={estilos.entrada}
                 type="email"
@@ -128,7 +132,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
             </label>
 
             <label className={estilos.campo}>
-              <span className={estilos.etiqueta}>Contraseña</span>
+              <span className={estilos.etiqueta}>{t.contrasena}</span>
               <input
                 className={estilos.entrada}
                 type="password"
@@ -148,19 +152,17 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
             ) : null}
 
             <button className={estilos.boton} type="submit" disabled={enviando}>
-              {enviando ? 'Verificando…' : 'Entrar'}
+              {enviando ? t.verificando : t.entrar}
               <IconoEnviar tamano={16} className={estilos.botonFlecha} />
             </button>
           </form>
         ) : (
           <form className={estilos.formulario} onSubmit={cambiarClave}>
-            <p className={estilos.introduccion}>
-              Tu cuenta todavía usa la contraseña temporal. Elegí una propia para seguir.
-            </p>
+            <p className={estilos.introduccion}>{t.introduccionCambiar}</p>
 
             {contrasena === '' ? (
               <label className={estilos.campo}>
-                <span className={estilos.etiqueta}>Contraseña actual</span>
+                <span className={estilos.etiqueta}>{t.contrasenaActual}</span>
                 <input
                   className={estilos.entrada}
                   type="password"
@@ -173,7 +175,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
             ) : null}
 
             <label className={estilos.campo}>
-              <span className={estilos.etiqueta}>Contraseña nueva</span>
+              <span className={estilos.etiqueta}>{t.contrasenaNueva}</span>
               <input
                 className={estilos.entrada}
                 type="password"
@@ -184,11 +186,11 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
                 autoFocus
                 onChange={(evento) => setNueva(evento.target.value)}
               />
-              <span className={estilos.pista}>Mínimo {largoMinimo} caracteres.</span>
+              <span className={estilos.pista}>{t.largoMinimo(largoMinimo)}</span>
             </label>
 
             <label className={estilos.campo}>
-              <span className={estilos.etiqueta}>Repetila</span>
+              <span className={estilos.etiqueta}>{t.repetir}</span>
               <input
                 className={estilos.entrada}
                 type="password"
@@ -208,7 +210,7 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
             ) : null}
 
             <button className={estilos.boton} type="submit" disabled={enviando}>
-              {enviando ? 'Guardando…' : 'Guardar y entrar'}
+              {enviando ? t.guardando : t.guardarYEntrar}
               <IconoEnviar tamano={16} className={estilos.botonFlecha} />
             </button>
           </form>

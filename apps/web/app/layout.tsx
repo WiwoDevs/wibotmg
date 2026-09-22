@@ -6,11 +6,14 @@ import { obtenerIdiomaActual } from '@/lib/idioma-servidor';
 import { obtenerTextos } from '@/lib/textos';
 import './globals.css';
 
+
 const interfaz = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
   variable: '--fuente-interfaz',
   display: 'swap',
+  // Respaldo para los caracteres chinos, que las fuentes de marca no traen.
+  fallback: ['PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'system-ui', 'sans-serif'],
 });
 
 const marca = Outfit({
@@ -18,6 +21,8 @@ const marca = Outfit({
   weight: ['500', '600', '700', '800'],
   variable: '--fuente-marca',
   display: 'swap',
+  // Respaldo para los caracteres chinos, que las fuentes de marca no traen.
+  fallback: ['PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'system-ui', 'sans-serif'],
 });
 
 const datos = Tomorrow({
@@ -25,6 +30,8 @@ const datos = Tomorrow({
   weight: ['400', '500', '600'],
   variable: '--fuente-datos',
   display: 'swap',
+  // Respaldo para los caracteres chinos, que las fuentes de marca no traen.
+  fallback: ['PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'system-ui', 'sans-serif'],
 });
 
 /** Título y descripción del documento en el idioma elegido. */

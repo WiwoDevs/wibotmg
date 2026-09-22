@@ -9,6 +9,8 @@ import {
   resumenOperacion,
   serieTemporal,
 } from '@wibot/core';
+import { LOCALE_IDIOMA, type Idioma } from './idioma';
+import { textosTablero } from './textos/tablero';
 
 /** Período que cubre el tablero. */
 export interface PeriodoTablero {
@@ -77,9 +79,13 @@ function redondear(valor: number | null | undefined): number | null {
  *
  * @param desde fecha inicial YYYY-MM-DD.
  * @param hasta fecha final YYYY-MM-DD.
+ * @param idioma idioma de las etiquetas y textos de apoyo.
  * @throws {Error} si la base de cupones no responde.
  */
-export async function armarTablero(desde: string, hasta: string): Promise<DatosTablero> {
+export async function armarTablero(desde: string, hasta: string, idioma: Idioma): Promise<DatosTablero> {
+  const textos = textosTablero[idioma];
+  const formato = new Intl.NumberFormat(LOCALE_IDIOMA[idioma]);
+  const cifra = (valor: number): string => formato.format(valor);
   const periodoEntrada = { desde, hasta };
   const gestionDisponible = hayBaseGestion();
 
@@ -110,28 +116,34 @@ export async function armarTablero(desde: string, hasta: string): Promise<DatosT
   const indicadores: Indicador[] = [
     {
       clave: 'cupones',
-      etiqueta: 'Cupones de servicio',
+      etiqueta: textos.indicadores.cupones,
       valor: resumen.cupones,
-      apoyo: `${resumen.locales} locales · ${resumen.asesores} asesores`,
+      apoyo: textos.indicadores.cuponesApoyo(cifra(resumen.locales), cifra(resumen.asesores)),
     },
     {
       clave: 'nps',
-      etiqueta: 'NPS de posventa',
+      etiqueta: textos.indicadores.nps,
       valor: redondear(totalEncuestas?.nps ?? null),
-      apoyo: totalEncuestas ? `${totalEncuestas.respuestas} respuestas` : 'sin encuestas cargadas',
+      apoyo: totalEncuestas
+        ? textos.indicadores.respuestas(cifra(totalEncuestas.respuestas))
+        : textos.indicadores.sinEncuestas,
     },
     {
       clave: 'leads',
-      etiqueta: 'Leads del CRM',
+      etiqueta: textos.indicadores.leads,
       valor: totalLeads?.leads ?? null,
-      apoyo: totalLeads ? `${totalLeads.superCalientes} súper calientes` : 'sin leads cargados',
+      apoyo: totalLeads
+        ? textos.indicadores.superCalientes(cifra(totalLeads.superCalientes))
+        : textos.indicadores.sinLeads,
     },
     {
       clave: 'atencion',
-      etiqueta: 'Atención telefónica',
+      etiqueta: textos.indicadores.atencion,
       valor: redondear(totalLlamadas?.porcentajeAtencion ?? null),
       sufijo: '%',
-      apoyo: totalLlamadas ? `${totalLlamadas.llamadas.toLocaleString('es-CL')} llamadas` : 'sin llamadas cargadas',
+      apoyo: totalLlamadas
+        ? textos.indicadores.llamadas(cifra(totalLlamadas.llamadas))
+        : textos.indicadores.sinLlamadas,
     },
   ];
 
@@ -144,20 +156,20 @@ export async function armarTablero(desde: string, hasta: string): Promise<DatosT
     concesionarios: porConcesionario.filas.map((fila) => ({
       etiqueta: fila.etiqueta,
       valor: fila.cupones,
-      detalle: `${fila.participacion.toString().replace('.', ',')} %`,
+      detalle: `${cifra(fila.participacion)} %`,
     })),
     temperaturaLeads: totalLeads
       ? ([
-          { etiqueta: 'Súper caliente', valor: totalLeads.superCalientes, tono: 'calor-4' },
-          { etiqueta: 'Caliente', valor: totalLeads.calientes, tono: 'calor-3' },
-          { etiqueta: 'Tibio', valor: totalLeads.tibios, tono: 'calor-2' },
-          { etiqueta: 'Frío', valor: totalLeads.frios, tono: 'calor-1' },
+          { etiqueta: textos.temperaturas.superCaliente, valor: totalLeads.superCalientes, tono: 'calor-4' },
+          { etiqueta: textos.temperaturas.caliente, valor: totalLeads.calientes, tono: 'calor-3' },
+          { etiqueta: textos.temperaturas.tibio, valor: totalLeads.tibios, tono: 'calor-2' },
+          { etiqueta: textos.temperaturas.frio, valor: totalLeads.frios, tono: 'calor-1' },
         ] satisfies TramoApilado[]).filter((tramo) => tramo.valor > 0)
       : [],
     puntosDeVenta: (leadsPorPunto?.filas ?? []).map((fila) => ({
       etiqueta: fila.etiqueta,
       valor: fila.leads,
-      detalle: `${fila.superCalientes} súper calientes`,
+      detalle: textos.indicadores.superCalientes(cifra(fila.superCalientes)),
     })),
     nps: (encuestasPorConcesionario?.filas ?? [])
       .filter((fila) => fila.respuestas >= MINIMO_RESPUESTAS_NPS && fila.nps !== null)
@@ -166,7 +178,7 @@ export async function armarTablero(desde: string, hasta: string): Promise<DatosT
       .map((fila) => ({
         etiqueta: fila.etiqueta,
         valor: fila.nps ?? 0,
-        detalle: `${fila.respuestas} respuestas`,
+        detalle: textos.indicadores.respuestas(cifra(fila.respuestas)),
       })),
     anexos: anexos
       .filter((anexo) => anexo.totalPerdidas > 0)
@@ -175,7 +187,7 @@ export async function armarTablero(desde: string, hasta: string): Promise<DatosT
       .map((anexo) => ({
         etiqueta: anexo.anexo,
         valor: anexo.totalPerdidas,
-        detalle: `${anexo.porcentajeAtencion ?? 0} % atendidas`,
+        detalle: textos.indicadores.atendidasPorcentaje(cifra(anexo.porcentajeAtencion ?? 0)),
       })),
     telefonia: {
       atendidas: porEstado.get('Answered') ?? 0,

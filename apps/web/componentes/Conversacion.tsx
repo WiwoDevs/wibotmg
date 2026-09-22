@@ -17,30 +17,17 @@ import {
   IconoSalir,
 } from './Iconos';
 import { PanelDiagnostico } from './PanelDiagnostico';
+import { useIdioma } from './ProveedorIdioma';
+import { SelectorIdioma } from './SelectorIdioma';
 import estilos from './conversacion.module.css';
 
-const SUGERENCIAS = [
-  '¿Qué punto de venta recibe más leads y con qué temperatura?',
-  '¿Cuántos leads calientes hay sin cerrar y de qué origen vienen?',
-  '¿Cómo viene el volumen de llamadas por anexo?',
-  '¿Qué local emitió más cupones de servicio el mes pasado?',
-];
-
-const NOMBRE_HERRAMIENTA: Record<string, string> = {
-  resumen_operacion: 'resumen de la operación',
-  ranking: 'ranking',
-  serie_temporal: 'evolución en el tiempo',
-  valores_dimension: 'valores de la dimensión',
-  buscar_cliente: 'búsqueda de cliente',
-  historial_vehiculo: 'historial del vehículo',
-  consulta_sql: 'consulta a medida',
-  esquema_cupones: 'esquema de la tabla',
-  listar_tablas: 'listado de tablas',
-  describir_tabla: 'estructura de la tabla',
-};
-
-function horaActual(): string {
-  return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+/**
+ * Hora actual en formato de 24 horas, según el idioma de la interfaz.
+ *
+ * @param locale Locale BCP 47 para Intl.
+ */
+function horaActual(locale: string): string {
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
 }
 
 interface SenalesDelOrbe {
@@ -92,6 +79,8 @@ export function Conversacion({
   preguntaInicial,
 }: Props) {
   const router = useRouter();
+  const { idioma, locale, textos } = useIdioma();
+  const t = textos.chat;
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [borrador, setBorrador] = useState('');
   const [consultaEnCurso, setConsultaEnCurso] = useState<string | null>(null);
@@ -136,8 +125,8 @@ export function Conversacion({
 
       setMensajes((previos) => [
         ...previos,
-        { id: identificador(), autor: 'persona', texto: pregunta, hora: horaActual(), bloques: [], consultas: [] },
-        { id: idRespuesta, autor: 'wibot', texto: '', hora: horaActual(), bloques: [], consultas: [], enCurso: true },
+        { id: identificador(), autor: 'persona', texto: pregunta, hora: horaActual(locale), bloques: [], consultas: [] },
+        { id: idRespuesta, autor: 'wibot', texto: '', hora: horaActual(locale), bloques: [], consultas: [], enCurso: true },
       ]);
       setBorrador('');
       setTrabajando(true);
@@ -156,7 +145,7 @@ export function Conversacion({
         const respuesta = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pregunta, historial }),
+          body: JSON.stringify({ pregunta, historial, idioma }),
           signal: aborto.signal,
         });
 
@@ -168,7 +157,7 @@ export function Conversacion({
 
         if (!respuesta.ok || !respuesta.body) {
           const detalle = (await respuesta.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(detalle?.error ?? `El servidor respondió ${respuesta.status}.`);
+          throw new Error(detalle?.error ?? t.servidorRespondio(respuesta.status));
         }
 
         const lector = respuesta.body.getReader();
@@ -194,7 +183,7 @@ export function Conversacion({
             if (evento.tipo === 'texto') {
               actualizarRespuesta((mensaje) => ({ ...mensaje, texto: mensaje.texto + evento.delta }));
             } else if (evento.tipo === 'consultando') {
-              setConsultaEnCurso(NOMBRE_HERRAMIENTA[evento.herramienta] ?? evento.herramienta);
+              setConsultaEnCurso(t.nombreHerramienta[evento.herramienta] ?? evento.herramienta);
               actualizarRespuesta((mensaje) => ({
                 ...mensaje,
                 consultas: [...mensaje.consultas, { herramienta: evento.herramienta, argumentos: evento.argumentos }],
@@ -220,7 +209,7 @@ export function Conversacion({
         actualizarRespuesta((mensaje) => ({ ...mensaje, enCurso: false }));
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
-        const mensajeError = error instanceof Error ? error.message : 'No se pudo completar la consulta.';
+        const mensajeError = error instanceof Error ? error.message : t.consultaFallida;
         actualizarRespuesta((mensaje) => ({ ...mensaje, enCurso: false, error: mensajeError }));
       } finally {
         abortoRef.current = null;
@@ -228,7 +217,7 @@ export function Conversacion({
         setConsultaEnCurso(null);
       }
     },
-    [ajustarAltura, mensajes, router, trabajando],
+    [ajustarAltura, idioma, locale, mensajes, router, t, trabajando],
   );
 
   const vaciarConversacion = useCallback((): void => {
@@ -283,13 +272,14 @@ export function Conversacion({
             Thinking Orb
             <span className={`${estilos.estado} ${trabajando ? '' : estilos.estadoInactivo}`}>
               <span className={estilos.punto} />
-              {trabajando ? 'CONSULTANDO' : 'LISTO'}
+              {trabajando ? t.estadoConsultando : t.estadoListo}
             </span>
           </h1>
-          <p className={estilos.bajada}>WiWO Me · Inteligencia ejecutiva</p>
+          <p className={estilos.bajada}>{t.bajada}</p>
         </div>
         <div className={estilos.sesion}>
-          <p className={estilos.contadorBase} title={`Base ${nombreBase}, privacidad ${modoPrivacidad}`}>
+          <SelectorIdioma />
+          <p className={estilos.contadorBase} title={t.tituloBase(nombreBase, modoPrivacidad)}>
             <IconoBase tamano={14} />
             {nombreBase}
           </p>
@@ -299,7 +289,7 @@ export function Conversacion({
               className={`${estilos.accionCabecera} ${panelAbierto ? estilos.accionActiva : ''}`}
               onClick={() => setPanelAbierto((previo) => !previo)}
               aria-pressed={panelAbierto}
-              title="Registro técnico"
+              title={t.registroTecnico}
             >
               <IconoRegistro tamano={15} />
             </button>
@@ -310,10 +300,10 @@ export function Conversacion({
               className={`${estilos.accionCabecera} ${confirmandoVaciado ? estilos.accionConfirmando : ''}`}
               onClick={vaciarConversacion}
               disabled={trabajando}
-              title="Vaciar la conversación"
+              title={t.vaciarConversacion}
             >
               {confirmandoVaciado ? (
-                <span className={estilos.confirmacion}>¿Vaciar?</span>
+                <span className={estilos.confirmacion}>{t.confirmarVaciado}</span>
               ) : (
                 <IconoNuevaConversacion tamano={15} />
               )}
@@ -338,18 +328,16 @@ export function Conversacion({
               <OrbePensante
                 tamano={216}
                 estado={estadoOrbe}
-                etiqueta="Thinking Orb de WiWO Me"
+                etiqueta={t.etiquetaOrbeApertura}
                 conEscenario={false}
               />
             </div>
-            <h2 className={estilos.aperturaTitulo}>Preguntale a la operación.</h2>
+            <h2 className={estilos.aperturaTitulo}>{t.aperturaTitulo}</h2>
             <p className={estilos.aperturaTexto}>
-              87.441 cupones de servicio desde marzo de 2025, con su concesionario, su local, su asesor y su
-              vehículo. Escribí en castellano; el Thinking Orb consulta la base y te devuelve el número con
-              su período.
+              {t.aperturaTexto}
             </p>
             <div className={estilos.sugerencias}>
-              {SUGERENCIAS.map((sugerencia) => (
+              {t.sugerencias.map((sugerencia) => (
                 <button
                   type="button"
                   key={sugerencia}
@@ -380,7 +368,7 @@ export function Conversacion({
                 <div className={estilos.actividad} role="status">
                   <p className={estilos.actividadFila}>
                     <IconoBase tamano={15} />
-                    Consultando la base:{' '}
+                    {t.consultandoBase}{' '}
                     <span className={estilos.actividadNombre} key={consultaEnCurso}>
                       {consultaEnCurso}
                     </span>
@@ -396,7 +384,7 @@ export function Conversacion({
                   }`}
                 >
                   {mensaje.texto === '' && mensaje.enCurso ? (
-                    <span className={estilos.pensando} role="status" aria-label="Pensando">
+                    <span className={estilos.pensando} role="status" aria-label={t.pensando}>
                       <span />
                       <span />
                       <span />
@@ -421,9 +409,7 @@ export function Conversacion({
                 <details className={estilos.consultas}>
                   <summary className={estilos.consultasResumen}>
                     <IconoDesplegar tamano={14} className={estilos.consultasChevron} />
-                    {mensaje.consultas.length === 1
-                      ? '1 consulta a la base'
-                      : `${mensaje.consultas.length} consultas a la base`}
+                    {t.consultasALaBase(mensaje.consultas.length)}
                   </summary>
                   {mensaje.consultas.map((consulta, indice) => (
                     <pre className={estilos.consultaDetalle} key={`${consulta.herramienta}-${indice}`}>
@@ -455,8 +441,8 @@ export function Conversacion({
             className={estilos.entrada}
             value={borrador}
             rows={1}
-            placeholder="Preguntale al Thinking Orb…"
-            aria-label="Escribí tu pregunta"
+            placeholder={t.placeholder}
+            aria-label={t.etiquetaEntrada}
             onChange={(evento) => {
               setBorrador(evento.target.value);
               ajustarAltura();
@@ -473,7 +459,7 @@ export function Conversacion({
               type="button"
               className={`${estilos.enviar} ${estilos.enviarDetener}`}
               onClick={detener}
-              aria-label="Detener la consulta"
+              aria-label={t.detenerConsulta}
             >
               <IconoDetener tamano={16} />
             </button>
@@ -482,14 +468,14 @@ export function Conversacion({
               type="submit"
               className={estilos.enviar}
               disabled={borrador.trim() === ''}
-              aria-label="Enviar la pregunta"
+              aria-label={t.enviarPregunta}
             >
               <IconoEnviar tamano={18} />
             </button>
           )}
         </div>
         <p className={estilos.aviso}>
-          El Thinking Orb solo lee la base. Los datos personales se enmascaran salvo en búsquedas puntuales.
+          {t.aviso}
         </p>
       </form>
 

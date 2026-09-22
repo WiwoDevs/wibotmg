@@ -1,12 +1,21 @@
 import { esModoDiagnostico, limpiarEventos, listarEventos } from '@/lib/diagnostico';
+import { obtenerIdiomaActual } from '@/lib/idioma-servidor';
 import { obtenerUsuarioActual } from '@/lib/sesion';
+import { textosTablero } from '@/lib/textos/tablero';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Responde 404 cuando el modo diagnóstico está apagado, para no delatar la ruta. */
-function apagado(): Response {
-  return Response.json({ error: 'No encontrado.' }, { status: 404 });
+async function apagado(): Promise<Response> {
+  const { errores } = textosTablero[await obtenerIdiomaActual()];
+  return Response.json({ error: errores.noEncontrado }, { status: 404 });
+}
+
+/** Responde 401 con el aviso de sesión vencida en el idioma de quien pide. */
+async function sesionExpirada(): Promise<Response> {
+  const { errores } = textosTablero[await obtenerIdiomaActual()];
+  return Response.json({ error: errores.sesionExpirada }, { status: 401 });
 }
 
 /**
@@ -16,7 +25,7 @@ function apagado(): Response {
 export async function GET(): Promise<Response> {
   if (!esModoDiagnostico()) return apagado();
   const usuario = await obtenerUsuarioActual();
-  if (!usuario) return Response.json({ error: 'Tu sesión expiró.' }, { status: 401 });
+  if (!usuario) return sesionExpirada();
 
   return Response.json({ eventos: listarEventos() });
 }
@@ -25,7 +34,7 @@ export async function GET(): Promise<Response> {
 export async function DELETE(): Promise<Response> {
   if (!esModoDiagnostico()) return apagado();
   const usuario = await obtenerUsuarioActual();
-  if (!usuario) return Response.json({ error: 'Tu sesión expiró.' }, { status: 401 });
+  if (!usuario) return sesionExpirada();
 
   limpiarEventos();
   return Response.json({ ok: true });

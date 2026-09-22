@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { DatosTablero } from '@/lib/tablero';
+import { formatearNumero } from '@/lib/formato';
 import type { OpcionPeriodo } from '@/lib/periodos';
+import { obtenerTextos } from '@/lib/textos';
 import { Conversacion } from './Conversacion';
 import { Arco, BarraApilada, BarrasHorizontales, SerieDiaria } from './graficos/Graficos';
 import { IconoAlerta } from './Iconos';
+import { useIdioma } from './ProveedorIdioma';
+import { SelectorIdioma } from './SelectorIdioma';
 import estilos from './tablero.module.css';
 
 interface Props {
@@ -18,11 +22,6 @@ interface Props {
 }
 
 const CLAVE_CHAT = 'wibot.tablero.chat';
-
-function numero(valor: number | null): string {
-  if (valor === null) return '—';
-  return new Intl.NumberFormat('es-CL').format(valor);
-}
 
 /**
  * Lee del navegador si el chat quedó abierto la última vez.
@@ -46,7 +45,9 @@ interface PropsTarjeta {
   children: React.ReactNode;
 }
 
+/** Tarjeta de un gráfico, con el botón que le pide a WiBot interpretarlo. */
 function Tarjeta({ titulo, apoyo, ancha, consulta, alConsultar, children }: PropsTarjeta) {
+  const { textos } = useIdioma();
   return (
     <section className={`${estilos.tarjeta} ${ancha ? estilos.tarjetaAncha : ''}`}>
       <header className={estilos.cabeceraTarjeta}>
@@ -58,9 +59,9 @@ function Tarjeta({ titulo, apoyo, ancha, consulta, alConsultar, children }: Prop
           type="button"
           className={estilos.botonConsultar}
           onClick={() => alConsultar(consulta)}
-          title="Pedirle a WiBot que lo interprete"
+          title={textos.tablero.interpretarTitulo}
         >
-          Interpretar
+          {textos.tablero.interpretar}
         </button>
       </header>
       {children}
@@ -80,6 +81,8 @@ export function Tablero({
   usuario,
   modoDiagnostico,
 }: Props) {
+  const { idioma, locale, textos } = useIdioma();
+  const t = textos.tablero;
   const [clavePeriodo, setClavePeriodo] = useState(periodoInicial);
   const [datos, setDatos] = useState<DatosTablero | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -96,6 +99,7 @@ export function Tablero({
     const periodo = periodos.find((opcion) => opcion.clave === clavePeriodo) ?? periodos[0];
     if (!periodo) return;
 
+    const textosTablero = obtenerTextos(idioma).tablero;
     let vigente = true;
     setCargando(true);
     setError(null);
@@ -109,13 +113,13 @@ export function Tablero({
         const cuerpo = (await respuesta.json()) as DatosTablero & { error?: string };
         if (!vigente) return;
         if (!respuesta.ok) {
-          setError(cuerpo.error ?? 'No se pudo cargar el tablero.');
+          setError(cuerpo.error ?? textosTablero.errorCarga);
           return;
         }
         setDatos(cuerpo);
       })
       .catch(() => {
-        if (vigente) setError('No se pudo contactar al servidor.');
+        if (vigente) setError(textosTablero.errorConexion);
       })
       .finally(() => {
         if (vigente) setCargando(false);
@@ -124,7 +128,7 @@ export function Tablero({
     return () => {
       vigente = false;
     };
-  }, [clavePeriodo, periodos]);
+  }, [clavePeriodo, periodos, idioma]);
 
   const alternarChat = useCallback((): void => {
     setChatVisible((previo) => {
@@ -152,7 +156,7 @@ export function Tablero({
       <div className={`${estilos.columnaTablero} ${vistaMovil === 'chat' ? estilos.ocultoEnMovil : ''}`}>
         <header className={estilos.cabecera}>
           <div className={estilos.identidad}>
-            <h1 className={estilos.titulo}>Tablero</h1>
+            <h1 className={estilos.titulo}>{t.titulo}</h1>
             <p className={estilos.bajada}>
               {nombreBase} · {etiquetaPeriodo}
             </p>
@@ -160,7 +164,7 @@ export function Tablero({
 
           <div className={estilos.controles}>
             <label className={estilos.selector}>
-              <span className={estilos.etiquetaSelector}>Período</span>
+              <span className={estilos.etiquetaSelector}>{t.periodo}</span>
               <select
                 className={estilos.select}
                 value={clavePeriodo}
@@ -180,8 +184,10 @@ export function Tablero({
               onClick={alternarChat}
               aria-pressed={chatVisible}
             >
-              {chatVisible ? 'Ocultar WiBot' : 'Mostrar WiBot'}
+              {chatVisible ? t.ocultarWibot : t.mostrarWibot}
             </button>
+
+            <SelectorIdioma />
           </div>
         </header>
 
@@ -195,11 +201,12 @@ export function Tablero({
         {!error && datos && !datos.hayGestion ? (
           <p className={estilos.aviso}>
             <IconoAlerta tamano={16} />
-            Falta importar encuestas, leads y telefonía. Corré <code>npm run datos:importar</code>.
+            {t.faltaGestionAntes} <code>npm run datos:importar</code>
+            {t.faltaGestionDespues}
           </p>
         ) : null}
 
-        {cargando && !datos ? <p className={estilos.cargando}>Consultando la operación…</p> : null}
+        {cargando && !datos ? <p className={estilos.cargando}>{t.cargando}</p> : null}
 
         {datos ? (
           <div className={`${estilos.rejilla} ${cargando ? estilos.rejillaCargando : ''}`}>
@@ -208,7 +215,7 @@ export function Tablero({
                 <article className={estilos.indicador} key={indicador.clave}>
                   <p className={estilos.etiquetaIndicador}>{indicador.etiqueta}</p>
                   <p className={estilos.valorIndicador}>
-                    {numero(indicador.valor)}
+                    {formatearNumero(indicador.valor, locale)}
                     {indicador.valor !== null && indicador.sufijo ? (
                       <span className={estilos.sufijo}>{indicador.sufijo}</span>
                     ) : null}
@@ -219,68 +226,71 @@ export function Tablero({
             </section>
 
             <Tarjeta
-              titulo="Cupones día a día"
+              titulo={t.tarjetas.cupones.titulo}
               apoyo={etiquetaPeriodo}
               ancha
               alConsultar={consultar}
-              consulta={`Mirá la evolución diaria de cupones entre ${datos.periodo.desde} y ${datos.periodo.hasta}: explicame el patrón, dónde están los picos y las caídas, y qué puede estar detrás.`}
+              consulta={t.tarjetas.cupones.consulta(datos.periodo)}
             >
               <SerieDiaria puntos={datos.serieCupones} />
             </Tarjeta>
 
             <Tarjeta
-              titulo="Concesionarios por volumen"
-              apoyo="cupones emitidos"
+              titulo={t.tarjetas.concesionarios.titulo}
+              apoyo={t.tarjetas.concesionarios.apoyo}
               alConsultar={consultar}
-              consulta={`Analizá el ranking de concesionarios por cupones entre ${datos.periodo.desde} y ${datos.periodo.hasta}: quién lidera, qué tan concentrado está y qué concesionario se quedó atrás.`}
+              consulta={t.tarjetas.concesionarios.consulta(datos.periodo)}
             >
               <BarrasHorizontales filas={datos.concesionarios} />
             </Tarjeta>
 
             <Tarjeta
-              titulo="NPS por concesionario"
-              apoyo="solo con 20 respuestas o más"
+              titulo={t.tarjetas.nps.titulo}
+              apoyo={t.tarjetas.nps.apoyo}
               alConsultar={consultar}
-              consulta={`Interpretá el NPS por concesionario entre ${datos.periodo.desde} y ${datos.periodo.hasta}, considerando solo los que tengan 20 respuestas o más: quién está bien, quién preocupa y qué haría falta revisar.`}
+              consulta={t.tarjetas.nps.consulta(datos.periodo)}
             >
               <BarrasHorizontales filas={datos.nps} />
             </Tarjeta>
 
             <Tarjeta
-              titulo="Temperatura de los leads"
-              apoyo="reparto del total"
+              titulo={t.tarjetas.temperatura.titulo}
+              apoyo={t.tarjetas.temperatura.apoyo}
               alConsultar={consultar}
-              consulta={`Interpretá el reparto de leads por temperatura entre ${datos.periodo.desde} y ${datos.periodo.hasta}: qué dice de la calidad de la demanda y qué habría que hacer con los súper calientes.`}
+              consulta={t.tarjetas.temperatura.consulta(datos.periodo)}
             >
               <BarraApilada tramos={datos.temperaturaLeads} />
             </Tarjeta>
 
             <Tarjeta
-              titulo="Puntos de venta"
-              apoyo="leads recibidos"
+              titulo={t.tarjetas.puntosDeVenta.titulo}
+              apoyo={t.tarjetas.puntosDeVenta.apoyo}
               alConsultar={consultar}
-              consulta={`Analizá los puntos de venta por leads recibidos entre ${datos.periodo.desde} y ${datos.periodo.hasta}, prestando atención a cuántos son súper calientes en cada uno.`}
+              consulta={t.tarjetas.puntosDeVenta.consulta(datos.periodo)}
             >
               <BarrasHorizontales filas={datos.puntosDeVenta} />
             </Tarjeta>
 
             <Tarjeta
-              titulo="Atención telefónica"
-              apoyo={`${numero(datos.telefonia.atendidas)} atendidas · ${numero(datos.telefonia.sinAtender)} perdidas`}
+              titulo={t.tarjetas.telefonia.titulo}
+              apoyo={t.tarjetas.telefonia.apoyo(
+                formatearNumero(datos.telefonia.atendidas, locale),
+                formatearNumero(datos.telefonia.sinAtender, locale),
+              )}
               alConsultar={consultar}
-              consulta={`Interpretá la tasa de atención telefónica entre ${datos.periodo.desde} y ${datos.periodo.hasta}: ¿es buena o mala para un contact center de posventa, y qué está pasando con las llamadas perdidas?`}
+              consulta={t.tarjetas.telefonia.consulta(datos.periodo)}
             >
               <Arco
                 porcentaje={datos.indicadores.find((i) => i.clave === 'atencion')?.valor ?? null}
-                pie={`${numero(datos.telefonia.enEspera)} quedaron en espera`}
+                pie={t.tarjetas.telefonia.pie(formatearNumero(datos.telefonia.enEspera, locale))}
               />
             </Tarjeta>
 
             <Tarjeta
-              titulo="Anexos que más pierden"
-              apoyo="llamadas sin atender"
+              titulo={t.tarjetas.anexos.titulo}
+              apoyo={t.tarjetas.anexos.apoyo}
               alConsultar={consultar}
-              consulta={`Analizá los anexos telefónicos con más llamadas perdidas entre ${datos.periodo.desde} y ${datos.periodo.hasta}: qué anexo preocupa más y qué recomendarías.`}
+              consulta={t.tarjetas.anexos.consulta(datos.periodo)}
             >
               <BarrasHorizontales filas={datos.anexos} />
             </Tarjeta>
@@ -307,7 +317,7 @@ export function Tablero({
             className={vistaMovil === 'tablero' ? estilos.pestanaActiva : estilos.pestana}
             onClick={() => setVistaMovil('tablero')}
           >
-            Tablero
+            {t.pestanaTablero}
           </button>
           <button
             type="button"

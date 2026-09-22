@@ -1,4 +1,5 @@
 .pantalla {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 100dvh;
@@ -7,6 +8,12 @@
     radial-gradient(circle at 16% 8%, rgba(66, 66, 255, 0.12), transparent 38%),
     radial-gradient(circle at 84% 88%, rgba(59, 255, 0, 0.12), transparent 40%),
     var(--lienzo);
+}
+
+.idioma {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: 16px;
 }
 
 .tarjeta {

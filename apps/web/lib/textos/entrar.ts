@@ -1,5 +1,50 @@
 import type { Idioma } from '../idioma';
 
-const en = {};
+const en = {
+  bajada: 'Thinking Orb · Executive intelligence',
+  introduccionEntrar: 'This workspace holds client and operations data. Sign in with the account you were given.',
+  correo: 'Email',
+  contrasena: 'Password',
+  verificando: 'Verifying…',
+  entrar: 'Sign in',
+  introduccionCambiar: 'Your account is still using the temporary password. Choose your own to continue.',
+  contrasenaActual: 'Current password',
+  contrasenaNueva: 'New password',
+  largoMinimo: (caracteres: number) => `At least ${caracteres} characters.`,
+  repetir: 'Repeat it',
+  guardando: 'Saving…',
+  guardarYEntrar: 'Save and sign in',
+  errorEntrar: 'Could not sign in.',
+  errorCambiar: 'Could not change the password.',
+  errorConexion: 'Could not reach the server. Check your connection.',
+  noCoinciden: 'The two new passwords do not match.',
+  sinCuentasTitulo: 'WiWO Me has no accounts yet',
+  sinCuentasTexto: 'Nobody can sign in until the first one is created. On the server, from the project root:',
+  sinCuentasNombre: 'Name',
+};
 
-export const textosEntrar: Record<Idioma, typeof en> = { en, zh: {} };
+export const textosEntrar: Record<Idioma, typeof en> = {
+  en,
+  zh: {
+    bajada: 'Thinking Orb · 高管智能',
+    introduccionEntrar: '此工作区包含客户与运营数据。请使用分配给你的账号登录。',
+    correo: '邮箱',
+    contrasena: '密码',
+    verificando: '正在验证…',
+    entrar: '登录',
+    introduccionCambiar: '你的账号仍在使用临时密码。请设置你自己的密码后继续。',
+    contrasenaActual: '当前密码',
+    contrasenaNueva: '新密码',
+    largoMinimo: (caracteres: number) => `至少 ${caracteres} 个字符。`,
+    repetir: '再次输入',
+    guardando: '正在保存…',
+    guardarYEntrar: '保存并登录',
+    errorEntrar: '无法登录。',
+    errorCambiar: '无法修改密码。',
+    errorConexion: '无法连接服务器，请检查网络。',
+    noCoinciden: '两次输入的新密码不一致。',
+    sinCuentasTitulo: 'WiWO Me 还没有任何账号',
+    sinCuentasTexto: '在创建第一个账号之前，任何人都无法登录。请在服务器上的项目根目录执行：',
+    sinCuentasNombre: '姓名',
+  },
+};

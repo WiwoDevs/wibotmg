@@ -1,9 +1,13 @@
 import 'server-only';
 import { hoyLocal, herramientasComoJsonSchema, obtenerHerramienta } from '@wibot/core';
 import { esModoDiagnostico, recortar, registrarEvento } from './diagnostico';
+import type { Idioma } from './idioma';
+import { obtenerTextos } from './textos';
 import type { EventoChat, TurnoEnviado } from './tipos';
 
-/** Rondas de consulta permitidas antes de exigirle al modelo que cierre. */
+/** Textos del chat en el idioma de la conversación en curso. */
+type TextosChatServidor = ReturnType<typeof obtenerTextos>['servidor']['chat'];
+
 /**
  * Error de la conversación con el modelo. Lleva un mensaje apto para mostrarle
  * a cualquiera; el cuerpo crudo del proveedor queda solo en el diagnóstico.
@@ -21,6 +25,7 @@ class ErrorDelModelo extends Error {
 /** Tamaño máximo del resultado de una herramienta que se le devuelve al modelo. */
 const MAX_CARACTERES_RESULTADO = 24000;
 
+/** Rondas de consulta permitidas antes de exigirle al modelo que cierre. */
 const MAX_RONDAS_DE_HERRAMIENTAS = Number.parseInt(process.env.WIBOT_MAX_RONDAS ?? '', 10) || 12;
 
 interface LlamadaHerramienta {
@@ -50,12 +55,14 @@ interface ConfiguracionModelo {
 
 /**
  * Lee la configuración del modelo desde el entorno.
+ *
+ * @param textos mensajes en el idioma de la conversación.
  * @throws {Error} si falta la clave de API.
  */
-function obtenerConfiguracionModelo(): ConfiguracionModelo {
+function obtenerConfiguracionModelo(textos: TextosChatServidor): ConfiguracionModelo {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error('Falta GEMINI_API_KEY en el entorno. El Thinking Orb no puede responder sin modelo.');
+    throw new Error(textos.faltaApiKey);
   }
   return {
     apiKey,
@@ -64,42 +71,55 @@ function obtenerConfiguracionModelo(): ConfiguracionModelo {
   };
 }
 
-/** Construye la instrucción de sistema, con la fecha de hoy ya resuelta. */
-function construirInstruccionDeSistema(): string {
-  return `Sos el Thinking Orb de WiWO Me, la inteligencia ejecutiva de WIWO sobre el negocio de MG Contact en Chile: la venta, la atención al cliente y la operación de servicio.
+/** Nombre del idioma de la app tal como se le pide al modelo que responda. */
+const IDIOMA_DE_RESPUESTA: Record<Idioma, string> = {
+  en: 'English',
+  zh: 'Simplified Chinese (简体中文)',
+};
 
-Hoy es ${hoyLocal()}.
+/**
+ * Construye la instrucción de sistema, con la fecha de hoy ya resuelta.
+ *
+ * @param idioma idioma de la app; el modelo responde siempre en él.
+ * @returns el texto completo de la instrucción de sistema.
+ */
+function construirInstruccionDeSistema(idioma: Idioma): string {
+  const lenguaje = IDIOMA_DE_RESPUESTA[idioma];
+  return `You are the Thinking Orb of WiWO Me, WIWO's executive intelligence on MG Contact's business in Chile: sales, customer service and service operations.
 
-Quien pregunta es gerencia y lo que primero le importa es la venta: leads, temperatura, conversión, rendimiento de cada punto de venta y de cada vendedor. La satisfacción del cliente viene después, y el volumen de cupones de servicio es contexto de la operación, no el centro del negocio.
+Today is ${hoyLocal()}.
 
-Tenés dos fuentes:
+The person asking is senior management, and what matters to them first is sales: leads, temperature, conversion, and the performance of each point of sale and each salesperson. Customer satisfaction comes next, and service coupon volume is operational context, not the core of the business.
 
-1. Gestión (lo comercial y la relación con el cliente): leads del CRM con su temperatura (Super Caliente, Caliente, Tibio, Frío), su punto de venta, su origen, su vendedor y si se convirtieron en venta; encuestas de posventa con notas de 1 a 7 y NPS; registro telefónico y estadísticas por anexo. Herramientas: leads, buscar_lead, encuestas_posventa, llamadas, buscar_llamadas, anexos_telefonia.
+You have two sources:
 
-2. Cupones de servicio (la operación de taller): un registro por cupón emitido, con concesionario, sucursal, asesor, vehículo (VIN, patente, modelo) y cliente. Desde marzo de 2025. Herramientas: resumen_operacion, ranking, serie_temporal, valores_dimension, buscar_cliente, historial_vehiculo.
+1. Management (commercial and customer relationship): CRM leads with their temperature (Super Caliente, Caliente, Tibio, Frío), point of sale, origin, salesperson and whether they converted into a sale; after-sales surveys with scores from 1 to 7 and NPS; phone log and statistics by extension. Tools: leads, buscar_lead, encuestas_posventa, llamadas, buscar_llamadas, anexos_telefonia.
 
-Cómo trabajás:
-- Consultá la base antes de dar cualquier cifra. No estimes, no recuerdes, no interpoles.
-- Ante una pregunta general o ambigua ("cómo vamos", "cómo viene el mes", "cómo está tal concesionario"), no te quedes en cupones: armá la foto completa consultando primero lo comercial (leads y conversión), después satisfacción (NPS) y recién ahí el volumen de servicio.
-- Elegí la fuente por el tema: leads para lo comercial y la venta, encuestas para satisfacción, llamadas para el contact center, cupones para el volumen de servicio de taller.
-- Respondé solo de cupones cuando la pregunta sea explícitamente de taller, servicio, cupones, asesores, patentes o vehículos. Si es de negocio, empezá por la venta.
-- Cuando des una cifra de cupones en una respuesta de negocio, acompañala con lo comercial del mismo período para que se lea como una foto, no como un dato suelto.
-- Antes de filtrar por un nombre que no estás seguro de que exista, confirmalo con valores_dimension.
-- consulta_sql es el último recurso; indicá la fuente y mirá antes esquema_cupones o esquema_gestion.
-- Nunca describas la estructura de la base ni nombres de tablas o columnas: quien pregunta es gerencia y espera cifras de negocio, no esquemas.
-- Si te piden varios bloques en una sola pregunta, pedí todas las consultas que puedas en la misma tanda en vez de una por vez.
-- Si una pregunta necesita varias consultas, hacelas todas antes de responder.
-- El NPS es un índice de -100 a 100, no un porcentaje: decí "NPS 61", nunca "61%".
-- Los leads y las llamadas que hay cargados son solo de agosto de 2026: no los presentes como histórico ni los compares con meses que no existen. Si te preguntan por la venta en un período que no está cubierto, decilo y mostrá lo que sí hay en vez de reemplazarlo por cupones sin avisar.
+2. Service coupons (workshop operations): one record per coupon issued, with dealer, branch, advisor, vehicle (VIN, license plate, model) and customer. Since March 2025. Tools: resumen_operacion, ranking, serie_temporal, valores_dimension, buscar_cliente, historial_vehiculo.
 
-Cómo respondés:
-- En español rioplatense neutro, directo, sin preámbulos ni disculpas.
-- Dos o tres frases. La cifra primero, después lo que la explica. En preguntas generales, la cifra que abre es la comercial.
-- Siempre decí a qué período corresponde el número.
-- No repitas en texto la tabla que ya se muestra abajo: comentá lo que importa de ella.
-- Si el dato está sucio o incompleto, decilo con todas las letras.
-- Si la base no tiene con qué responder, decí qué falta en vez de inventar.
-- Los datos personales vienen enmascarados salvo en búsquedas puntuales. No intentes rodear eso.`;
+How you work:
+- Query the database before giving any figure. Do not estimate, recall or interpolate.
+- For a general or ambiguous question ("how are we doing", "how is the month going", "how is a given dealer doing"), do not stop at coupons: build the full picture by querying the commercial side first (leads and conversion), then satisfaction (NPS), and only then service volume.
+- Choose the source by topic: leads for commercial and sales, surveys for satisfaction, calls for the contact center, coupons for workshop service volume.
+- Answer only from coupons when the question is explicitly about the workshop, service, coupons, advisors, license plates or vehicles. If it is about the business, start with sales.
+- When you give a coupon figure in a business answer, pair it with the commercial data for the same period so it reads as a snapshot, not a loose number.
+- Before filtering by a name you are not sure exists, confirm it with valores_dimension.
+- consulta_sql is the last resort; state the source and check esquema_cupones or esquema_gestion first.
+- Never describe the database structure or table or column names: the person asking is management and expects business figures, not schemas.
+- If you are asked for several blocks in a single question, request all the queries you can in the same batch instead of one at a time.
+- If a question needs several queries, run them all before answering.
+- NPS is an index from -100 to 100, not a percentage: say "NPS 61", never "61%".
+- The loaded leads and calls are only from August 2026: do not present them as historical or compare them with months that do not exist. If you are asked about sales in a period that is not covered, say so and show what is available instead of replacing it with coupons without warning.
+
+How you answer:
+- Always reply in ${lenguaje} — the language selected in the app — even if the question or previous turns are in another language. Keep proper names (people, dealers, branches, vehicle models) as they appear in the data, but translate category labels such as lead temperatures (Super Caliente, Caliente, Tibio, Frío), statuses and sources into that language.
+- Neutral, direct tone, with no preambles or apologies.
+- Two or three sentences. The figure first, then what explains it. In general questions, the opening figure is the commercial one.
+- Always state which period the number refers to.
+- Do not repeat in text the table already shown below: comment on what matters in it.
+- If the data is dirty or incomplete, say so plainly.
+- If the database has nothing to answer with, say what is missing instead of making something up.
+- Personal data comes masked except in specific lookups. Do not try to get around that.`;
 }
 
 /** Traduce el registro de herramientas al formato de la API compatible con OpenAI. */
@@ -134,10 +154,10 @@ function parsearArgumentos(bruto: string): ArgumentosParseados {
     if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
       return { argumentos: valor as Record<string, unknown> };
     }
-    return { argumentos: {}, problema: 'Los argumentos no son un objeto JSON.' };
+    return { argumentos: {}, problema: 'The arguments are not a JSON object.' };
   } catch (error) {
     const detalle = error instanceof Error ? error.message : String(error);
-    return { argumentos: {}, problema: `Los argumentos no son JSON válido: ${detalle}` };
+    return { argumentos: {}, problema: `The arguments are not valid JSON: ${detalle}` };
   }
 }
 
@@ -180,12 +200,15 @@ interface RondaStream {
  * @param configuracion credenciales y modelo.
  * @param mensajes historial completo enviado al modelo.
  * @param alRecibirTexto se invoca con cada fragmento de texto.
+ * @param textos mensajes en el idioma de la conversación.
+ * @param sinHerramientas si es true no se le ofrecen herramientas al modelo.
  * @throws {Error} si la API responde con un código de error.
  */
 async function ejecutarRonda(
   configuracion: ConfiguracionModelo,
   mensajes: MensajeModelo[],
   alRecibirTexto: (delta: string) => void,
+  textos: TextosChatServidor,
   sinHerramientas = false,
 ): Promise<RondaStream> {
   const comenzoEn = Date.now();
@@ -212,26 +235,26 @@ async function ejecutarRonda(
     const detalle = error instanceof Error ? error.message : String(error);
     registrarEvento({
       tipo: 'error',
-      titulo: 'No se pudo alcanzar el modelo',
+      titulo: textos.diagnostico.modeloInalcanzable,
       duracionMs: Date.now() - comenzoEn,
       detalle: { url: `${configuracion.baseUrl}/chat/completions`, error: detalle },
     });
-    throw new ErrorDelModelo('WiBot no pudo conectarse con el modelo. Revisá la conexión y volvé a preguntar.');
+    throw new ErrorDelModelo(textos.sinConexion);
   }
 
   if (!respuesta.ok || !respuesta.body) {
     const detalle = await respuesta.text().catch(() => '');
     const explicacion =
       respuesta.status === 401 || respuesta.status === 403
-        ? 'WiBot no pudo autenticarse contra el modelo. Avisale al equipo técnico.'
+        ? textos.sinAutenticacion
         : respuesta.status === 429
-          ? 'El modelo está recibiendo demasiados pedidos. Esperá unos segundos y volvé a preguntar.'
+          ? textos.demasiadosPedidos
           : respuesta.status >= 500
-            ? 'El modelo no está disponible en este momento. Volvé a intentar en un minuto.'
-            : 'WiBot no pudo completar esta consulta. Probá reformularla más corta; si vuelve a pasar, avisale al equipo técnico.';
+            ? textos.modeloNoDisponible
+            : textos.consultaNoCompletada;
     registrarEvento({
       tipo: 'error',
-      titulo: `El modelo respondió ${respuesta.status}`,
+      titulo: textos.diagnostico.modeloRespondio(respuesta.status),
       duracionMs: Date.now() - comenzoEn,
       detalle: {
         estado: respuesta.status,
@@ -319,7 +342,7 @@ async function ejecutarRonda(
 function recortarResultado(resultado: unknown): string {
   const texto = JSON.stringify(resultado) ?? 'null';
   if (texto.length <= MAX_CARACTERES_RESULTADO) return texto;
-  return `${texto.slice(0, MAX_CARACTERES_RESULTADO)}… [resultado recortado; pedí un corte más acotado si necesitás el resto]`;
+  return `${texto.slice(0, MAX_CARACTERES_RESULTADO)}… [result truncated; request a narrower slice if you need the rest]`;
 }
 
 /**
@@ -348,10 +371,10 @@ function sanearHistorial(mensajes: MensajeModelo[]): MensajeModelo[] {
     }
 
     if (mensaje.role === 'tool') {
-      const nombre = nombrePorLlamada.get(mensaje.tool_call_id ?? '') ?? 'consulta';
+      const nombre = nombrePorLlamada.get(mensaje.tool_call_id ?? '') ?? 'query';
       const contenido = typeof mensaje.content === 'string' ? mensaje.content : '';
-      const recortado = contenido.length > 6000 ? `${contenido.slice(0, 6000)}… [recortado]` : contenido;
-      resultados.push(`Resultado de ${nombre}: ${recortado}`);
+      const recortado = contenido.length > 6000 ? `${contenido.slice(0, 6000)}… [truncated]` : contenido;
+      resultados.push(`Result of ${nombre}: ${recortado}`);
       continue;
     }
 
@@ -361,7 +384,7 @@ function sanearHistorial(mensajes: MensajeModelo[]): MensajeModelo[] {
   if (resultados.length > 0) {
     saneados.push({
       role: 'user',
-      content: `Estos son los datos que ya se consultaron en la base. Usalos para responder:\n\n${resultados.join('\n\n')}`,
+      content: `This is the data already queried from the database. Use it to answer:\n\n${resultados.join('\n\n')}`,
     });
   }
 
@@ -398,17 +421,19 @@ function* emitirDiagnostico(
  *
  * @param configuracion credenciales y modelo.
  * @param mensajes historial con los resultados ya obtenidos.
+ * @param textos mensajes en el idioma de la conversación.
  */
 async function* cerrarConLoReunido(
   configuracion: ConfiguracionModelo,
   mensajes: MensajeModelo[],
+  textos: TextosChatServidor,
 ): AsyncGenerator<EventoChat> {
   const historial: MensajeModelo[] = [
     ...mensajes,
     {
       role: 'user',
       content:
-        'Ya no podés hacer más consultas. Respondé ahora con los datos que ya obtuviste, diciendo explícitamente qué parte de la pregunta quedó sin cubrir.',
+        'You cannot run any more queries. Answer now with the data you already obtained, stating explicitly which part of the question was left uncovered.',
     },
   ];
 
@@ -420,6 +445,7 @@ async function* cerrarConLoReunido(
       (delta) => {
         pendientes.push({ tipo: 'texto', delta });
       },
+      textos,
       true,
     );
 
@@ -428,14 +454,14 @@ async function* cerrarConLoReunido(
     if (cierre.texto.trim() === '') {
       yield {
         tipo: 'error',
-        mensaje: 'WiBot no pudo cerrar la respuesta. Probá pedir menos bloques por vez.',
+        mensaje: textos.sinCierre,
       };
     }
   } catch (error) {
     const mensaje =
       error instanceof ErrorDelModelo
         ? error.message
-        : 'WiBot no pudo completar la respuesta. Probá acotar la pregunta a un período o a un concesionario.';
+        : textos.respuestaIncompleta;
     yield { tipo: 'error', mensaje };
   }
 }
@@ -446,16 +472,19 @@ async function* cerrarConLoReunido(
  *
  * @param historial turnos previos de la conversación, del más antiguo al más reciente.
  * @param pregunta lo que acaba de escribir la persona.
+ * @param idioma idioma de la app; el modelo responde y los errores se redactan en él.
  * @yields eventos de progreso, datos y texto para la interfaz.
  */
 export async function* conversar(
   historial: TurnoEnviado[],
   pregunta: string,
+  idioma: Idioma,
 ): AsyncGenerator<EventoChat> {
-  const configuracion = obtenerConfiguracionModelo();
+  const textos = obtenerTextos(idioma).servidor.chat;
+  const configuracion = obtenerConfiguracionModelo(textos);
 
   const mensajes: MensajeModelo[] = [
-    { role: 'system', content: construirInstruccionDeSistema() },
+    { role: 'system', content: construirInstruccionDeSistema(idioma) },
     ...historial.map((turno): MensajeModelo => ({
       role: turno.autor === 'persona' ? 'user' : 'assistant',
       content: turno.texto,
@@ -469,12 +498,12 @@ export async function* conversar(
     try {
       ejecutada = await ejecutarRonda(configuracion, mensajes, (delta) => {
         pendientes.push({ tipo: 'texto', delta });
-      });
+      }, textos);
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : String(error);
       yield* emitirDiagnostico({
         tipo: 'error',
-        titulo: `La ronda ${ronda + 1} falló`,
+        titulo: textos.diagnostico.rondaFallo(ronda + 1),
         detalle: { error: mensaje, mensajesEnviados: mensajes.length },
       });
 
@@ -493,11 +522,12 @@ export async function* conversar(
           (delta) => {
             pendientes.push({ tipo: 'texto', delta });
           },
+          textos,
           true,
         );
         yield* emitirDiagnostico({
           tipo: 'ronda',
-          titulo: `La ronda ${ronda + 1} se recuperó sin llamadas a herramientas`,
+          titulo: textos.diagnostico.rondaRecuperada(ronda + 1),
           detalle: { mensajesEnviados: saneados.length, caracteresDeTexto: ejecutada.texto.length },
         });
         for (const evento of pendientes) yield evento;
@@ -507,7 +537,7 @@ export async function* conversar(
         const detalle = segundoError instanceof Error ? segundoError.message : String(segundoError);
         yield* emitirDiagnostico({
           tipo: 'error',
-          titulo: `El reintento de la ronda ${ronda + 1} también falló`,
+          titulo: textos.diagnostico.reintentoFallo(ronda + 1),
           detalle: { error: detalle },
         });
         yield {
@@ -515,7 +545,7 @@ export async function* conversar(
           mensaje:
             segundoError instanceof ErrorDelModelo
               ? segundoError.message
-              : 'WiBot no pudo completar esta consulta. Probá reformularla más corta.',
+              : textos.consultaNoCompletadaCorta,
         };
         yield { tipo: 'fin' };
         return;
@@ -529,10 +559,8 @@ export async function* conversar(
       tipo: 'ronda',
       titulo:
         ejecutada.llamadas.length === 0
-          ? `Ronda ${ronda + 1}: el modelo respondió con texto`
-          : `Ronda ${ronda + 1}: el modelo pidió ${ejecutada.llamadas.length} consulta${
-              ejecutada.llamadas.length === 1 ? '' : 's'
-            }`,
+          ? textos.diagnostico.rondaConTexto(ronda + 1)
+          : textos.diagnostico.rondaConConsultas(ronda + 1, ejecutada.llamadas.length),
       duracionMs: ejecutada.duracionMs,
       detalle: {
         mensajesEnviados: ejecutada.mensajesEnviados,
@@ -543,7 +571,7 @@ export async function* conversar(
           tieneFirma: Boolean(llamada.extra),
         })),
         ...(sinFirma.length > 0
-          ? { advertencia: `Sin thought_signature: ${sinFirma.join(', ')}. Gemini rechazará la próxima ronda.` }
+          ? { advertencia: `Missing thought_signature: ${sinFirma.join(', ')}. Gemini will reject the next round.` }
           : {}),
       },
     });
@@ -552,7 +580,7 @@ export async function* conversar(
       if (ejecutada.texto.trim() === '') {
         yield {
           tipo: 'error',
-          mensaje: 'El modelo no devolvió respuesta. Probá reformular la pregunta.',
+          mensaje: textos.sinRespuesta,
         };
       }
       yield { tipo: 'fin' };
@@ -576,13 +604,13 @@ export async function* conversar(
       if (problema) {
         yield* emitirDiagnostico({
           tipo: 'error',
-          titulo: `Argumentos ilegibles en ${llamada.nombre}`,
+          titulo: textos.diagnostico.argumentosIlegibles(llamada.nombre),
           detalle: { crudo: recortar(llamada.argumentos), problema },
         });
         mensajes.push({
           role: 'tool',
           tool_call_id: llamada.id,
-          content: `${problema} Volvé a llamar la herramienta con un JSON válido.`,
+          content: `${problema} Call the tool again with valid JSON.`,
         });
         continue;
       }
@@ -594,7 +622,7 @@ export async function* conversar(
         mensajes.push({
           role: 'tool',
           tool_call_id: llamada.id,
-          content: `La herramienta "${llamada.nombre}" no existe.`,
+          content: `The tool "${llamada.nombre}" does not exist.`,
         });
         continue;
       }
@@ -605,7 +633,7 @@ export async function* conversar(
         yield { tipo: 'datos', herramienta: llamada.nombre, formato: herramienta.formato, resultado };
         yield* emitirDiagnostico({
           tipo: 'herramienta',
-          titulo: `${llamada.nombre} respondió`,
+          titulo: textos.diagnostico.herramientaRespondio(llamada.nombre),
           duracionMs: Date.now() - inicioHerramienta,
           detalle: { argumentos, resultado: recortar(resultado, 800) },
         });
@@ -618,7 +646,7 @@ export async function* conversar(
         const mensaje = error instanceof Error ? error.message : String(error);
         yield* emitirDiagnostico({
           tipo: 'error',
-          titulo: `${llamada.nombre} falló`,
+          titulo: textos.diagnostico.herramientaFallo(llamada.nombre),
           duracionMs: Date.now() - inicioHerramienta,
           detalle: { argumentos, error: mensaje },
         });
@@ -631,10 +659,10 @@ export async function* conversar(
   // que redacte la respuesta con lo que ya tiene sobre la mesa.
   yield* emitirDiagnostico({
     tipo: 'ronda',
-    titulo: 'Se agotó el tope de consultas; cerrando con lo reunido',
+    titulo: textos.diagnostico.topeAgotado,
     detalle: { topeRondas: MAX_RONDAS_DE_HERRAMIENTAS },
   });
 
-  yield* cerrarConLoReunido(configuracion, mensajes);
+  yield* cerrarConLoReunido(configuracion, mensajes, textos);
   yield { tipo: 'fin' };
 }
