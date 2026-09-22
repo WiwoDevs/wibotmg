@@ -73,6 +73,7 @@ function obtenerConfiguracionModelo(textos: TextosChatServidor): ConfiguracionMo
 
 /** Nombre del idioma de la app tal como se le pide al modelo que responda. */
 const IDIOMA_DE_RESPUESTA: Record<Idioma, string> = {
+  es: 'neutral Rioplatense Spanish (español rioplatense neutro)',
   en: 'English',
   zh: 'Simplified Chinese (简体中文)',
 };

@@ -24,6 +24,28 @@ const en = {
 };
 
 export const textosEntrar: Record<Idioma, typeof en> = {
+  es: {
+    bajada: 'Thinking Orb · Inteligencia ejecutiva',
+    introduccionEntrar: 'Este espacio tiene datos de clientes y de la operación. Entrá con la cuenta que te asignaron.',
+    correo: 'Usuario o correo',
+    contrasena: 'Contraseña',
+    verificando: 'Verificando…',
+    entrar: 'Entrar',
+    introduccionCambiar: 'Tu cuenta todavía usa la contraseña temporal. Elegí una propia para seguir.',
+    contrasenaActual: 'Contraseña actual',
+    contrasenaNueva: 'Contraseña nueva',
+    largoMinimo: (caracteres: number) => `Al menos ${caracteres} caracteres.`,
+    repetir: 'Repetila',
+    guardando: 'Guardando…',
+    guardarYEntrar: 'Guardar y entrar',
+    errorEntrar: 'No se pudo iniciar sesión.',
+    errorCambiar: 'No se pudo cambiar la contraseña.',
+    errorConexion: 'No se pudo contactar al servidor. Revisá tu conexión.',
+    noCoinciden: 'Las dos contraseñas nuevas no coinciden.',
+    sinCuentasTitulo: 'WiWO Me todavía no tiene cuentas',
+    sinCuentasTexto: 'Nadie puede entrar hasta que se cree la primera. En el servidor, desde la raíz del proyecto:',
+    sinCuentasNombre: 'Nombre',
+  },
   en,
   zh: {
     bajada: 'Thinking Orb · 高管智能',

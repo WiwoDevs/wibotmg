@@ -90,6 +90,91 @@ const en = {
 };
 
 export const textosTablero: Record<Idioma, typeof en> = {
+  es: {
+    titulo: 'Tablero',
+    periodo: 'Período',
+    mostrarWibot: 'Mostrar WiBot',
+    ocultarWibot: 'Ocultar WiBot',
+    interpretar: 'Interpretar',
+    interpretarTitulo: 'Pedirle a WiBot que lo interprete',
+    pestanaTablero: 'Tablero',
+    cargando: 'Consultando la operación…',
+    faltaGestionAntes: 'Falta importar encuestas, leads y telefonía. Corré',
+    faltaGestionDespues: '.',
+    errorCarga: 'No se pudo cargar el tablero.',
+    errorConexion: 'No se pudo contactar al servidor.',
+    tarjetas: {
+      cupones: {
+        titulo: 'Cupones día a día',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Mirá la evolución diaria de cupones entre ${desde} y ${hasta}: explicame el patrón, dónde están los picos y las caídas, y qué puede estar detrás.`,
+      },
+      concesionarios: {
+        titulo: 'Concesionarios por volumen',
+        apoyo: 'cupones emitidos',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Analizá el ranking de concesionarios por cupones entre ${desde} y ${hasta}: quién lidera, qué tan concentrado está y qué concesionario se quedó atrás.`,
+      },
+      nps: {
+        titulo: 'NPS por concesionario',
+        apoyo: 'solo con 20 respuestas o más',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Interpretá el NPS por concesionario entre ${desde} y ${hasta}, considerando solo los que tengan 20 respuestas o más: quién está bien, quién preocupa y qué haría falta revisar.`,
+      },
+      temperatura: {
+        titulo: 'Temperatura de los leads',
+        apoyo: 'reparto del total',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Interpretá el reparto de leads por temperatura entre ${desde} y ${hasta}: qué dice de la calidad de la demanda y qué habría que hacer con los súper calientes.`,
+      },
+      puntosDeVenta: {
+        titulo: 'Puntos de venta',
+        apoyo: 'leads recibidos',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Analizá los puntos de venta por leads recibidos entre ${desde} y ${hasta}, prestando atención a cuántos son súper calientes en cada uno.`,
+      },
+      telefonia: {
+        titulo: 'Atención telefónica',
+        apoyo: (atendidas: string, perdidas: string) => `${atendidas} atendidas · ${perdidas} perdidas`,
+        pie: (enEspera: string) => `${enEspera} quedaron en espera`,
+        consulta: ({ desde, hasta }: Rango) =>
+          `Interpretá la tasa de atención telefónica entre ${desde} y ${hasta}: ¿es buena o mala para un contact center de posventa, y qué está pasando con las llamadas perdidas?`,
+      },
+      anexos: {
+        titulo: 'Anexos que más pierden',
+        apoyo: 'llamadas sin atender',
+        consulta: ({ desde, hasta }: Rango) =>
+          `Analizá los anexos telefónicos con más llamadas perdidas entre ${desde} y ${hasta}: qué anexo preocupa más y qué recomendarías.`,
+      },
+    },
+    indicadores: {
+      cupones: 'Cupones de servicio',
+      cuponesApoyo: (locales: string, asesores: string) => `${locales} locales · ${asesores} asesores`,
+      nps: 'NPS de posventa',
+      respuestas: (cantidad: string) => `${cantidad} respuestas`,
+      sinEncuestas: 'sin encuestas cargadas',
+      leads: 'Leads del CRM',
+      superCalientes: (cantidad: string) => `${cantidad} súper calientes`,
+      sinLeads: 'sin leads cargados',
+      atencion: 'Atención telefónica',
+      llamadas: (cantidad: string) => `${cantidad} llamadas`,
+      sinLlamadas: 'sin llamadas cargadas',
+      atendidasPorcentaje: (porcentaje: string) => `${porcentaje} % atendidas`,
+    },
+    temperaturas: {
+      superCaliente: 'Súper caliente',
+      caliente: 'Caliente',
+      tibio: 'Tibio',
+      frio: 'Frío',
+    },
+    errores: {
+      fechasInvalidas: 'Indicá "desde" y "hasta" con formato YYYY-MM-DD.',
+      rangoInvertido: 'El rango está invertido.',
+      noSePudoArmar: 'No se pudo armar el tablero.',
+      noEncontrado: 'No encontrado.',
+      sesionExpirada: 'Tu sesión expiró.',
+    },
+  },
   en,
   zh: {
     titulo: '仪表板',

@@ -6,6 +6,10 @@ const en = {
 };
 
 export const textosComun: Record<Idioma, typeof en> = {
+  es: {
+    idioma: 'Idioma',
+    metaDescripcion: 'Preguntale a los datos de negocio de MG Contact en lenguaje natural y recibí la cifra con su período.',
+  },
   en,
   zh: {
     idioma: '语言',

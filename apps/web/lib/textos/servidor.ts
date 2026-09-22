@@ -51,6 +51,55 @@ const en = {
 };
 
 export const textosServidor: Record<Idioma, typeof en> = {
+  es: {
+    chat: {
+      cuerpoInvalido: 'El cuerpo de la petición no es JSON válido.',
+      preguntaVacia: 'Escribí una pregunta.',
+      preguntaLarga: 'La pregunta es demasiado larga.',
+      errorInesperado: 'Error inesperado al consultar la base.',
+      faltaApiKey: 'Falta GEMINI_API_KEY en el entorno. El Thinking Orb no puede responder sin modelo.',
+      sinConexion: 'WiBot no pudo conectarse con el modelo. Revisá la conexión y volvé a preguntar.',
+      sinAutenticacion: 'WiBot no pudo autenticarse contra el modelo. Avisale al equipo técnico.',
+      demasiadosPedidos: 'El modelo está recibiendo demasiados pedidos. Esperá unos segundos y volvé a preguntar.',
+      modeloNoDisponible: 'El modelo no está disponible en este momento. Volvé a intentar en un minuto.',
+      consultaNoCompletada:
+        'WiBot no pudo completar esta consulta. Probá reformularla más corta; si vuelve a pasar, avisale al equipo técnico.',
+      consultaNoCompletadaCorta: 'WiBot no pudo completar esta consulta. Probá reformularla más corta.',
+      sinCierre: 'WiBot no pudo cerrar la respuesta. Probá pedir menos bloques por vez.',
+      respuestaIncompleta: 'WiBot no pudo completar la respuesta. Probá acotar la pregunta a un período o a un concesionario.',
+      sinRespuesta: 'El modelo no devolvió respuesta. Probá reformular la pregunta.',
+      diagnostico: {
+        modeloInalcanzable: 'No se pudo alcanzar el modelo',
+        modeloRespondio: (estado: number) => `El modelo respondió ${estado}`,
+        rondaFallo: (ronda: number) => `La ronda ${ronda} falló`,
+        rondaRecuperada: (ronda: number) => `La ronda ${ronda} se recuperó sin llamadas a herramientas`,
+        reintentoFallo: (ronda: number) => `El reintento de la ronda ${ronda} también falló`,
+        rondaConTexto: (ronda: number) => `Ronda ${ronda}: el modelo respondió con texto`,
+        rondaConConsultas: (ronda: number, cantidad: number) =>
+          `Ronda ${ronda}: el modelo pidió ${cantidad} ${cantidad === 1 ? 'consulta' : 'consultas'}`,
+        argumentosIlegibles: (herramienta: string) => `Argumentos ilegibles en ${herramienta}`,
+        herramientaRespondio: (herramienta: string) => `${herramienta} respondió`,
+        herramientaFallo: (herramienta: string) => `${herramienta} falló`,
+        topeAgotado: 'Se agotó el tope de consultas; cerrando con lo reunido',
+      },
+    },
+    sesion: {
+      peticionMalFormada: 'Petición mal formada.',
+      faltanDatos: 'Escribí tu usuario y tu contraseña.',
+      demasiadosIntentos: (minutos: number) =>
+        `Demasiados intentos fallidos. Probá de nuevo en ${minutos} minuto${minutos === 1 ? '' : 's'}.`,
+      credencialesIncorrectas: 'Usuario o contraseña incorrectos.',
+      sesionExpirada: 'Tu sesión expiró. Volvé a entrar.',
+      claveCorta: (caracteres: number) => `La contraseña nueva debe tener al menos ${caracteres} caracteres.`,
+      claveIgual: 'La contraseña nueva tiene que ser distinta de la actual.',
+      claveActualIncorrecta: 'La contraseña actual no coincide.',
+    },
+    acceso: {
+      tokenInvalido: 'Token de servicio inválido o revocado.',
+      origenNoAutorizado: 'Este origen no está autorizado para el token.',
+      sesionExpirada: 'Tu sesión expiró. Volvé a entrar.',
+    },
+  },
   en,
   zh: {
     chat: {
