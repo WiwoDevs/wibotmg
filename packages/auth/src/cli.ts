@@ -13,11 +13,11 @@ import {
 
 const AYUDA = `Gestión de acceso a WiBot
 
-  npm run usuarios -- crear <correo> "<nombre>"   Da de alta y muestra una contraseña temporal
+  npm run usuarios -- crear <usuario> "<nombre>"   Da de alta y muestra una contraseña temporal
   npm run usuarios -- listar                      Lista los usuarios y su estado
-  npm run usuarios -- clave <correo> [clave]      Fija esa contraseña, o genera una temporal
-  npm run usuarios -- activar <correo>            Reactiva una cuenta
-  npm run usuarios -- desactivar <correo>         Bloquea la cuenta y cierra sus sesiones
+  npm run usuarios -- clave <usuario> [clave]      Fija esa contraseña, o genera una temporal
+  npm run usuarios -- activar <usuario>            Reactiva una cuenta
+  npm run usuarios -- desactivar <usuario>         Bloquea la cuenta y cierra sus sesiones
   npm run usuarios -- auditoria [cantidad]        Últimas consultas registradas
 `;
 
@@ -44,7 +44,7 @@ async function principal(): Promise<void> {
     case 'crear': {
       const [correo, nombre] = argumentos;
       if (!correo || !nombre) {
-        throw new Error('Uso: crear <correo> "<nombre>"');
+        throw new Error('Uso: crear <usuario> "<nombre>"');
       }
       const temporal = generarContrasenaTemporal();
       const usuario = await crearUsuario(correo, nombre, temporal, true);
@@ -57,7 +57,7 @@ async function principal(): Promise<void> {
     case 'listar': {
       const usuarios = listarUsuarios();
       if (usuarios.length === 0) {
-        stdout.write('Todavía no hay usuarios. Creá el primero con: crear <correo> "<nombre>"\n');
+        stdout.write('Todavía no hay usuarios. Creá el primero con: crear <usuario> "<nombre>"\n');
         break;
       }
       stdout.write('\nestado    último acceso      correo\n');
@@ -72,7 +72,7 @@ async function principal(): Promise<void> {
 
     case 'clave': {
       const [correo, elegida] = argumentos;
-      if (!correo) throw new Error('Uso: clave <correo> [contraseña]');
+      if (!correo) throw new Error('Uso: clave <usuario> [contraseña]');
 
       // Una contraseña elegida por la persona es definitiva; una generada por
       // el administrador es temporal y hay que cambiarla al entrar.
@@ -93,7 +93,7 @@ async function principal(): Promise<void> {
     case 'activar':
     case 'desactivar': {
       const [correo] = argumentos;
-      if (!correo) throw new Error(`Uso: ${comando} <correo>`);
+      if (!correo) throw new Error(`Uso: ${comando} <usuario>`);
       const activar = comando === 'activar';
       if (!activar && !(await confirmar(`Vas a cerrar todas las sesiones de ${correo}. ¿Seguimos?`))) {
         stdout.write('Cancelado.\n');

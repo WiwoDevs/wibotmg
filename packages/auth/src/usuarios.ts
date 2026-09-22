@@ -39,9 +39,15 @@ export function normalizarCorreo(correo: string): string {
   return correo.trim().toLowerCase();
 }
 
-/** Valida que un correo tenga forma de correo. No verifica que exista. */
-export function esCorreoValido(correo: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo);
+/** Largo máximo de un nombre de usuario o correo con el que se inicia sesión. */
+const LARGO_MAXIMO_USUARIO = 120;
+
+/**
+ * Valida el identificador con el que se inicia sesión: un correo o un nombre de
+ * usuario cualquiera, sin espacios. No verifica que exista.
+ */
+export function esUsuarioValido(usuario: string): boolean {
+  return usuario.length > 0 && usuario.length <= LARGO_MAXIMO_USUARIO && !/\s/.test(usuario);
 }
 
 /**
@@ -61,8 +67,8 @@ export async function crearUsuario(
   debeCambiar = true,
 ): Promise<Usuario> {
   const correoNormalizado = normalizarCorreo(correo);
-  if (!esCorreoValido(correoNormalizado)) {
-    throw new Error(`"${correo}" no parece un correo válido`);
+  if (!esUsuarioValido(correoNormalizado)) {
+    throw new Error(`"${correo}" no es un usuario válido: no puede estar vacío ni tener espacios`);
   }
   if (nombre.trim() === '') {
     throw new Error('El nombre no puede estar vacío');

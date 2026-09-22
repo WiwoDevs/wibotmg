@@ -121,8 +121,10 @@ export function FormularioEntrar({ volver, largoMinimo, cambioObligatorio, corre
               <span className={estilos.etiqueta}>{t.correo}</span>
               <input
                 className={estilos.entrada}
-                type="email"
+                type="text"
                 name="correo"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={correo}
                 autoComplete="username"
                 autoFocus

@@ -3,7 +3,7 @@ import type { Idioma } from '../idioma';
 const en = {
   bajada: 'Thinking Orb · Executive intelligence',
   introduccionEntrar: 'This workspace holds client and operations data. Sign in with the account you were given.',
-  correo: 'Email',
+  correo: 'Username or email',
   contrasena: 'Password',
   verificando: 'Verifying…',
   entrar: 'Sign in',
@@ -28,7 +28,7 @@ export const textosEntrar: Record<Idioma, typeof en> = {
   zh: {
     bajada: 'Thinking Orb · 高管智能',
     introduccionEntrar: '此工作区包含客户与运营数据。请使用分配给你的账号登录。',
-    correo: '邮箱',
+    correo: '用户名或邮箱',
     contrasena: '密码',
     verificando: '正在验证…',
     entrar: '登录',

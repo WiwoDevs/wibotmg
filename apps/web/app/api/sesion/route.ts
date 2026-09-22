@@ -3,7 +3,7 @@ import {
   NOMBRE_COOKIE,
   cerrarSesion,
   crearSesion,
-  esCorreoValido,
+  esUsuarioValido,
   registrarIntento,
   revisarBloqueo,
   verificarCredenciales,
@@ -37,7 +37,7 @@ export async function POST(peticion: Request): Promise<Response> {
   const contrasena = typeof cuerpo.contrasena === 'string' ? cuerpo.contrasena : '';
   const ip = await obtenerIp(peticion);
 
-  if (correo === '' || contrasena === '' || !esCorreoValido(correo)) {
+  if (correo === '' || contrasena === '' || !esUsuarioValido(correo)) {
     return Response.json({ error: textos.faltanDatos }, { status: 400 });
   }
 

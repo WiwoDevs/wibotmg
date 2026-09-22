@@ -15,7 +15,7 @@ export {
   cambiarContrasena,
   cambiarActivacion,
   normalizarCorreo,
-  esCorreoValido,
+  esUsuarioValido,
 } from './usuarios.js';
 export type { Usuario } from './usuarios.js';
 

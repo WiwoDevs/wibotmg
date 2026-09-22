@@ -34,10 +34,10 @@ const en = {
   },
   sesion: {
     peticionMalFormada: 'Malformed request.',
-    faltanDatos: 'Enter your email and password.',
+    faltanDatos: 'Enter your username and password.',
     demasiadosIntentos: (minutos: number) =>
       `Too many failed attempts. Try again in ${minutos} minute${minutos === 1 ? '' : 's'}.`,
-    credencialesIncorrectas: 'Incorrect email or password.',
+    credencialesIncorrectas: 'Incorrect username or password.',
     sesionExpirada: 'Your session expired. Please sign in again.',
     claveCorta: (caracteres: number) => `The new password must be at least ${caracteres} characters long.`,
     claveIgual: 'The new password must be different from the current one.',
@@ -84,9 +84,9 @@ export const textosServidor: Record<Idioma, typeof en> = {
     },
     sesion: {
       peticionMalFormada: '请求格式错误。',
-      faltanDatos: '请输入邮箱和密码。',
+      faltanDatos: '请输入用户名和密码。',
       demasiadosIntentos: (minutos: number) => `失败次数过多，请在 ${minutos} 分钟后重试。`,
-      credencialesIncorrectas: '邮箱或密码错误。',
+      credencialesIncorrectas: '用户名或密码错误。',
       sesionExpirada: '会话已过期，请重新登录。',
       claveCorta: (caracteres: number) => `新密码至少需要 ${caracteres} 个字符。`,
       claveIgual: '新密码必须与当前密码不同。',
