@@ -1,3 +1,6 @@
+import { IDIOMA_PREDETERMINADO, LOCALE_IDIOMA, type Idioma } from './idioma';
+import { textosBloques } from './textos/bloques';
+
 /** Un período con nombre, para el selector del tablero. */
 export interface OpcionPeriodo {
   clave: string;
@@ -22,13 +25,19 @@ function finDeMes(anio: number, mes: number): string {
  *
  * @param hoyIso fecha de referencia YYYY-MM-DD.
  * @param cantidadMeses cuántos meses ofrecer.
+ * @param idioma idioma de las etiquetas; por defecto el predeterminado (inglés).
  */
-export function construirPeriodos(hoyIso: string, cantidadMeses = 8): OpcionPeriodo[] {
+export function construirPeriodos(
+  hoyIso: string,
+  cantidadMeses = 8,
+  idioma: Idioma = IDIOMA_PREDETERMINADO,
+): OpcionPeriodo[] {
   const [anioHoy, mesHoy] = hoyIso.split('-').map(Number);
-  const nombres = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-  ];
+  const nombreMes = new Intl.DateTimeFormat(LOCALE_IDIOMA[idioma], {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 
   const opciones: OpcionPeriodo[] = [];
   for (let atras = 0; atras < cantidadMeses; atras += 1) {
@@ -37,7 +46,7 @@ export function construirPeriodos(hoyIso: string, cantidadMeses = 8): OpcionPeri
     const mes = fecha.getUTCMonth() + 1;
     opciones.push({
       clave: `${anio}-${dosDigitos(mes)}`,
-      etiqueta: `${nombres[mes - 1]} ${anio}`,
+      etiqueta: nombreMes.format(fecha),
       desde: `${anio}-${dosDigitos(mes)}-01`,
       hasta: finDeMes(anio, mes),
     });
@@ -45,7 +54,7 @@ export function construirPeriodos(hoyIso: string, cantidadMeses = 8): OpcionPeri
 
   opciones.push({
     clave: `anio-${anioHoy}`,
-    etiqueta: `año ${anioHoy}`,
+    etiqueta: textosBloques[idioma].periodos.anio(String(anioHoy)),
     desde: `${anioHoy}-01-01`,
     hasta: hoyIso,
   });

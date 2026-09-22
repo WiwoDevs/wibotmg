@@ -1,7 +1,9 @@
 import { registrarConsulta } from '@wibot/auth';
 import { autenticarPeticion, cabecerasCors, responderJson, responderPreflight } from '@/lib/acceso';
 import { conversar } from '@/lib/gemini';
+import { idiomaDePeticion } from '@/lib/idioma-servidor';
 import { obtenerIp } from '@/lib/sesion';
+import { obtenerTextos } from '@/lib/textos';
 import type { EventoChat, TurnoEnviado } from '@/lib/tipos';
 
 export const runtime = 'nodejs';
@@ -10,6 +12,7 @@ export const dynamic = 'force-dynamic';
 interface CuerpoPeticion {
   pregunta?: unknown;
   historial?: unknown;
+  idioma?: unknown;
 }
 
 /** Valida y normaliza el historial recibido del navegador. */
@@ -39,17 +42,21 @@ export async function POST(peticion: Request): Promise<Response> {
 
   let cuerpo: CuerpoPeticion;
   try {
-    cuerpo = (await peticion.json()) as CuerpoPeticion;
+    cuerpo = ((await peticion.json()) ?? {}) as CuerpoPeticion;
   } catch {
-    return responderJson({ error: 'El cuerpo de la petición no es JSON válido.' }, 400, actor.origen);
+    const textosCookie = obtenerTextos(idiomaDePeticion(peticion)).servidor.chat;
+    return responderJson({ error: textosCookie.cuerpoInvalido }, 400, actor.origen);
   }
+
+  const idioma = idiomaDePeticion(peticion, cuerpo.idioma);
+  const textos = obtenerTextos(idioma).servidor.chat;
 
   const pregunta = typeof cuerpo.pregunta === 'string' ? cuerpo.pregunta.trim() : '';
   if (pregunta === '') {
-    return responderJson({ error: 'Escribí una pregunta.' }, 400, actor.origen);
+    return responderJson({ error: textos.preguntaVacia }, 400, actor.origen);
   }
   if (pregunta.length > 2000) {
-    return responderJson({ error: 'La pregunta es demasiado larga.' }, 400, actor.origen);
+    return responderJson({ error: textos.preguntaLarga }, 400, actor.origen);
   }
 
   const historial = normalizarHistorial(cuerpo.historial);
@@ -65,12 +72,12 @@ export async function POST(peticion: Request): Promise<Response> {
       const herramientasUsadas: string[] = [];
 
       try {
-        for await (const evento of conversar(historial, pregunta)) {
+        for await (const evento of conversar(historial, pregunta, idioma)) {
           if (evento.tipo === 'consultando') herramientasUsadas.push(evento.herramienta);
           emitir(evento);
         }
       } catch (error) {
-        const mensaje = error instanceof Error ? error.message : 'Error inesperado al consultar la base.';
+        const mensaje = error instanceof Error ? error.message : textos.errorInesperado;
         emitir({ tipo: 'error', mensaje });
         emitir({ tipo: 'fin' });
       } finally {

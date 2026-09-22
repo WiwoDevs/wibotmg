@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { EventoDiagnosticoCliente } from '@/lib/tipos';
 import { IconoAlerta, IconoBase, IconoDesplegar } from './Iconos';
+import { useIdioma } from './ProveedorIdioma';
 import estilos from './diagnostico.module.css';
 
 interface Props {
@@ -13,18 +14,12 @@ interface Props {
   alLimpiar: () => void;
 }
 
-const ETIQUETA_TIPO: Record<EventoDiagnosticoCliente['tipo'], string> = {
-  ronda: 'modelo',
-  herramienta: 'base',
-  error: 'error',
-  turno: 'turno',
-};
-
 function hora(iso: string): string {
   return iso.slice(11, 19);
 }
 
 function Fila({ evento }: { evento: EventoDiagnosticoCliente }) {
+  const { textos } = useIdioma();
   const [abierto, setAbierto] = useState(evento.tipo === 'error');
   const hayDetalle = evento.detalle !== undefined;
 
@@ -39,7 +34,7 @@ function Fila({ evento }: { evento: EventoDiagnosticoCliente }) {
       >
         <span className={estilos.marcaTiempo}>{hora(evento.ocurridoEn)}</span>
         <span className={`${estilos.tipo} ${estilos[`tipo_${evento.tipo}`] ?? ''}`}>
-          {ETIQUETA_TIPO[evento.tipo]}
+          {textos.chat.diagnostico.tipo[evento.tipo]}
         </span>
         <span className={estilos.titulo}>{evento.titulo}</span>
         {evento.duracionMs === undefined ? null : (
@@ -65,6 +60,8 @@ function Fila({ evento }: { evento: EventoDiagnosticoCliente }) {
  * turno en curso con el registro que guarda el servidor.
  */
 export function PanelDiagnostico({ enVivo, abierto, alCerrar, alLimpiar }: Props) {
+  const { textos } = useIdioma();
+  const t = textos.chat.diagnostico;
   const [delServidor, setDelServidor] = useState<EventoDiagnosticoCliente[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,17 +72,17 @@ export function PanelDiagnostico({ enVivo, abierto, alCerrar, alLimpiar }: Props
     try {
       const respuesta = await fetch('/api/diagnostico');
       if (!respuesta.ok) {
-        setError(`El servidor respondió ${respuesta.status}.`);
+        setError(textos.chat.servidorRespondio(respuesta.status));
         return;
       }
       const datos = (await respuesta.json()) as { eventos?: EventoDiagnosticoCliente[] };
       setDelServidor(datos.eventos ?? []);
     } catch {
-      setError('No se pudo leer el registro del servidor.');
+      setError(t.errorLectura);
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [t, textos]);
 
   useEffect(() => {
     if (abierto) void recargar();
@@ -107,21 +104,21 @@ export function PanelDiagnostico({ enVivo, abierto, alCerrar, alLimpiar }: Props
   });
 
   return (
-    <aside className={estilos.cajon} aria-label="Registro técnico">
+    <aside className={estilos.cajon} aria-label={t.titulo}>
       <header className={estilos.cabecera}>
         <h2 className={estilos.encabezado}>
           <IconoBase tamano={15} />
-          Registro técnico
+          {t.titulo}
         </h2>
-        <span className={estilos.cuenta}>{eventos.length} eventos</span>
+        <span className={estilos.cuenta}>{t.eventos(eventos.length)}</span>
         <button type="button" className={estilos.accion} onClick={() => void recargar()} disabled={cargando}>
-          {cargando ? 'Leyendo…' : 'Recargar'}
+          {cargando ? t.leyendo : t.recargar}
         </button>
         <button type="button" className={estilos.accion} onClick={() => void limpiar()}>
-          Vaciar
+          {t.vaciar}
         </button>
         <button type="button" className={estilos.accion} onClick={alCerrar}>
-          Cerrar
+          {t.cerrar}
         </button>
       </header>
 
@@ -133,7 +130,7 @@ export function PanelDiagnostico({ enVivo, abierto, alCerrar, alLimpiar }: Props
       ) : null}
 
       {eventos.length === 0 ? (
-        <p className={estilos.vacio}>Todavía no hay eventos. Hacé una pregunta y volvé a mirar.</p>
+        <p className={estilos.vacio}>{t.vacio}</p>
       ) : (
         <ul className={estilos.lista}>
           {eventos.map((evento) => (

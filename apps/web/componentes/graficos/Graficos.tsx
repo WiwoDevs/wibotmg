@@ -1,21 +1,10 @@
 'use client';
 
 import { useId, useState } from 'react';
+import { formatearDiaCorto, formatearNumero, formatearPorcentaje } from '@/lib/formato';
 import type { FilaBarra, PuntoSerie, TramoApilado } from '@/lib/tablero';
+import { useIdioma } from '../ProveedorIdioma';
 import estilos from './graficos.module.css';
-
-/** Formatea un entero con separador de miles chileno. */
-function numero(valor: number): string {
-  return new Intl.NumberFormat('es-CL').format(valor);
-}
-
-/** Convierte 2026-08-19 en "19 ago". */
-function diaCorto(iso: string): string {
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const [, mes, dia] = iso.split('-');
-  const indice = Number(mes) - 1;
-  return `${Number(dia)} ${meses[indice] ?? ''}`.trim();
-}
 
 interface Sugerencia {
   texto: string;
@@ -29,9 +18,12 @@ interface Sugerencia {
  */
 export function SerieDiaria({ puntos }: { puntos: PuntoSerie[] }) {
   const [sugerencia, setSugerencia] = useState<Sugerencia | null>(null);
+  const { locale, textos } = useIdioma();
+  const t = textos.bloques.graficos;
+  const diaCorto = (iso: string) => formatearDiaCorto(iso, locale);
 
   if (puntos.length === 0) {
-    return <p className={estilos.vacio}>Sin movimientos en este período.</p>;
+    return <p className={estilos.vacio}>{t.sinMovimientos}</p>;
   }
 
   const maximo = puntos.reduce((tope, punto) => Math.max(tope, punto.valor), 0) || 1;
@@ -48,7 +40,7 @@ export function SerieDiaria({ puntos }: { puntos: PuntoSerie[] }) {
         viewBox="0 0 100 42"
         preserveAspectRatio="none"
         role="img"
-        aria-label={`Serie de ${puntos.length} días. Máximo ${maximo} el ${pico ? diaCorto(pico.intervalo) : ''}.`}
+        aria-label={t.descripcionSerie(puntos.length, formatearNumero(maximo, locale), pico ? diaCorto(pico.intervalo) : '')}
       >
         {puntos.map((punto, indice) => {
           const alto = (punto.valor / maximo) * 40;
@@ -64,7 +56,7 @@ export function SerieDiaria({ puntos }: { puntos: PuntoSerie[] }) {
               rx={0.6}
               onMouseEnter={(evento) =>
                 setSugerencia({
-                  texto: `${diaCorto(punto.intervalo)}: ${numero(punto.valor)}`,
+                  texto: `${diaCorto(punto.intervalo)}: ${formatearNumero(punto.valor, locale)}`,
                   x: evento.clientX,
                   y: evento.clientY,
                 })
@@ -78,7 +70,7 @@ export function SerieDiaria({ puntos }: { puntos: PuntoSerie[] }) {
       <div className={estilos.ejeSerie}>
         <span>{primero ? diaCorto(primero.intervalo) : ''}</span>
         <span className={estilos.marcaPico}>
-          pico {pico ? diaCorto(pico.intervalo) : ''} · {numero(maximo)}
+          {t.pico} {pico ? diaCorto(pico.intervalo) : ''} · {formatearNumero(maximo, locale)}
         </span>
         <span>{ultimo ? diaCorto(ultimo.intervalo) : ''}</span>
       </div>
@@ -108,8 +100,10 @@ export function BarrasHorizontales({
   sufijo?: string;
   destacarPrimera?: boolean;
 }) {
+  const { locale, textos } = useIdioma();
+
   if (filas.length === 0) {
-    return <p className={estilos.vacio}>Sin datos en este período.</p>;
+    return <p className={estilos.vacio}>{textos.bloques.graficos.sinDatos}</p>;
   }
 
   const maximo = filas.reduce((tope, fila) => Math.max(tope, fila.valor), 0) || 1;
@@ -122,7 +116,7 @@ export function BarrasHorizontales({
             {fila.etiqueta}
           </span>
           <span className={estilos.valorBarra}>
-            {numero(fila.valor)}
+            {formatearNumero(fila.valor, locale)}
             {sufijo}
             {fila.detalle ? <span className={estilos.detalleBarra}>{fila.detalle}</span> : null}
           </span>
@@ -144,21 +138,22 @@ export function BarrasHorizontales({
  * por tamaño.
  */
 export function BarraApilada({ tramos }: { tramos: TramoApilado[] }) {
+  const { locale, textos } = useIdioma();
   const total = tramos.reduce((suma, tramo) => suma + tramo.valor, 0);
 
   if (total === 0) {
-    return <p className={estilos.vacio}>Sin leads en este período.</p>;
+    return <p className={estilos.vacio}>{textos.bloques.graficos.sinLeads}</p>;
   }
 
   return (
     <div className={estilos.apilada}>
-      <div className={estilos.pila} role="img" aria-label={tramos.map((t) => `${t.etiqueta}: ${t.valor}`).join('; ')}>
+      <div className={estilos.pila} role="img" aria-label={tramos.map((tramo) => `${tramo.etiqueta}: ${formatearNumero(tramo.valor, locale)}`).join('; ')}>
         {tramos.map((tramo) => (
           <span
             key={tramo.etiqueta}
             className={`${estilos.tramo} ${estilos[tramo.tono] ?? ''}`}
             style={{ width: `${(tramo.valor / total) * 100}%` }}
-            title={`${tramo.etiqueta}: ${numero(tramo.valor)}`}
+            title={`${tramo.etiqueta}: ${formatearNumero(tramo.valor, locale)}`}
           />
         ))}
       </div>
@@ -168,10 +163,8 @@ export function BarraApilada({ tramos }: { tramos: TramoApilado[] }) {
             <span className={`${estilos.punto} ${estilos[tramo.tono] ?? ''}`} />
             <span className={estilos.textoLeyenda}>{tramo.etiqueta}</span>
             <span className={estilos.numeroLeyenda}>
-              {numero(tramo.valor)}
-              <span className={estilos.detalleBarra}>
-                {((tramo.valor / total) * 100).toFixed(1).replace('.', ',')} %
-              </span>
+              {formatearNumero(tramo.valor, locale)}
+              <span className={estilos.detalleBarra}>{formatearPorcentaje((tramo.valor / total) * 100, locale)}</span>
             </span>
           </li>
         ))}
@@ -192,13 +185,15 @@ export function Arco({
   pie: string;
 }) {
   const id = useId();
+  const { locale, textos } = useIdioma();
   const valor = porcentaje === null ? 0 : Math.min(Math.max(porcentaje, 0), 100);
   const radio = 52;
   const largo = Math.PI * radio;
+  const cifra = porcentaje === null ? '—' : formatearPorcentaje(valor, locale);
 
   return (
     <div className={estilos.arco}>
-      <svg viewBox="0 0 120 68" className={estilos.lienzoArco} role="img" aria-label={`${valor} por ciento. ${pie}`}>
+      <svg viewBox="0 0 120 68" className={estilos.lienzoArco} role="img" aria-label={textos.bloques.graficos.descripcionArco(cifra, pie)}>
         <path
           d={`M 8 60 A ${radio} ${radio} 0 0 1 112 60`}
           className={estilos.arcoFondo}
@@ -215,7 +210,7 @@ export function Arco({
         />
       </svg>
       <p className={estilos.cifraArco}>
-        {porcentaje === null ? '—' : `${valor.toFixed(1).replace('.', ',')} %`}
+        {cifra}
       </p>
       <p className={estilos.pieArco}>{pie}</p>
     </div>

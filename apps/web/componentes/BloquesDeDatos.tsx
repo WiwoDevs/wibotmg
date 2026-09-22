@@ -1,12 +1,18 @@
+'use client';
+
 import type { BloqueDatos } from '@/lib/tipos';
+import type { Textos } from '@/lib/textos';
 import {
   esColumnaTecnica,
   esValorNumerico,
   etiquetarColumna,
+  formatearDecimal,
   formatearFecha,
   formatearNumero,
   formatearPorcentaje,
+  formatearRangoFechas,
 } from '@/lib/formato';
+import { useIdioma } from './ProveedorIdioma';
 import { IconoPrivacidad } from './Iconos';
 import estilos from './conversacion.module.css';
 
@@ -85,56 +91,91 @@ interface SerieTemporal {
   puntos: Array<{ intervalo: string; cupones: number }>;
 }
 
-const TITULO_DIMENSION: Record<string, string> = {
-  concesionario: 'Concesionarios',
-  local: 'Locales',
-  asesor: 'Asesores',
-  tipoDocumento: 'Tipos de documento',
-  familia: 'Familias',
-  modelo: 'Modelos',
-  region: 'Regiones',
-  comuna: 'Comunas',
-};
+type TextosBloques = Textos['bloques'];
+
+/**
+ * Busca la traducción de una clave interna en un diccionario de textos.
+ *
+ * @param diccionario traducciones del idioma actual.
+ * @param clave clave interna, tal como la devuelve el núcleo.
+ * @param respaldo texto a mostrar si la clave no tiene traducción.
+ */
+function traducir(diccionario: Record<string, string>, clave: string, respaldo: string): string {
+  return diccionario[clave] ?? respaldo;
+}
+
+/**
+ * Etiqueta visible de una columna: la traducción conocida o, si no la hay,
+ * el nombre de la columna vuelto legible.
+ */
+function etiquetaDeColumna(columna: string, textos: TextosBloques): string {
+  return textos.columnas[columna.toLowerCase()] ?? etiquetarColumna(columna);
+}
+
+/**
+ * Traduce los valores que llegan en español con una traducción fija
+ * (temperaturas de lead, "sin dato", booleanos). El resto se devuelve igual.
+ */
+function traducirValor(valor: unknown, textos: TextosBloques): string {
+  if (typeof valor === 'boolean') return valor ? textos.si : textos.no;
+  const texto = String(valor);
+  return textos.valores[texto] ?? texto;
+}
+
+/**
+ * Rotula el período con las fechas en el idioma actual. Si las fechas no se
+ * reconocen se muestra la etiqueta que armó el núcleo.
+ */
+function etiquetaDePeriodo(periodo: Periodo, locale: string): string {
+  return formatearRangoFechas(periodo.desde, periodo.hasta, locale) ?? periodo.etiqueta;
+}
 
 function Encabezado({ titulo, periodo }: { titulo: string; periodo?: Periodo }) {
+  const { locale } = useIdioma();
   return (
     <div className={estilos.bloqueEncabezado}>
       <h3 className={estilos.bloqueTitulo}>{titulo}</h3>
-      {periodo ? <span className={estilos.bloquePeriodo}>{periodo.etiqueta}</span> : null}
+      {periodo ? <span className={estilos.bloquePeriodo}>{etiquetaDePeriodo(periodo, locale)}</span> : null}
     </div>
   );
 }
 
 function PieEnmascarado({ columnas }: { columnas: string[] }) {
+  const { textos } = useIdioma();
   if (columnas.length === 0) return null;
+  const nombres = columnas.map((columna) => etiquetaDeColumna(columna, textos.bloques)).join(', ');
   return (
     <p className={estilos.pieBloque}>
       <IconoPrivacidad tamano={14} />
-      Datos personales enmascarados: {columnas.map(etiquetarColumna).join(', ').toLowerCase()}
+      {textos.bloques.datosEnmascarados} {nombres}
     </p>
   );
 }
 
 function VistaResumen({ datos }: { datos: ResumenOperacion }) {
+  const { locale, textos } = useIdioma();
+  const t = textos.bloques.resumen;
   const lecturas: Array<[string, string]> = [
-    ['Locales activos', formatearNumero(datos.locales)],
-    ['Asesores', formatearNumero(datos.asesores)],
-    ['Clientes distintos', formatearNumero(datos.clientes)],
-    ['Vehículos', formatearNumero(datos.vehiculos)],
-    ['Concesionarios', formatearNumero(datos.concesionarios)],
+    [t.localesActivos, formatearNumero(datos.locales, locale)],
+    [t.asesores, formatearNumero(datos.asesores, locale)],
+    [t.clientesDistintos, formatearNumero(datos.clientes, locale)],
+    [t.vehiculos, formatearNumero(datos.vehiculos, locale)],
+    [t.concesionarios, formatearNumero(datos.concesionarios, locale)],
   ];
 
   // El kilometraje lleva unidad y no entra en media fila junto a su etiqueta.
   const kilometraje =
-    datos.kilometrajePromedio === null ? '—' : `${formatearNumero(datos.kilometrajePromedio)} km`;
+    datos.kilometrajePromedio === null
+      ? '—'
+      : `${formatearNumero(datos.kilometrajePromedio, locale)} ${t.unidadKm}`;
 
   return (
     <section className={estilos.bloque}>
-      <Encabezado titulo="Operación" periodo={datos.periodo} />
+      <Encabezado titulo={textos.bloques.titulos.operacion} periodo={datos.periodo} />
       <div className={estilos.lecturas}>
         <div className={`${estilos.lectura} ${estilos.lecturaPrincipal}`}>
-          <span className={estilos.lecturaEtiqueta}>Cupones emitidos</span>
-          <span className={estilos.lecturaValor}>{formatearNumero(datos.cupones)}</span>
+          <span className={estilos.lecturaEtiqueta}>{t.cuponesEmitidos}</span>
+          <span className={estilos.lecturaValor}>{formatearNumero(datos.cupones, locale)}</span>
         </div>
         {lecturas.map(([etiqueta, valor]) => (
           <div className={estilos.lectura} key={etiqueta}>
@@ -143,7 +184,7 @@ function VistaResumen({ datos }: { datos: ResumenOperacion }) {
           </div>
         ))}
         <div className={`${estilos.lectura} ${estilos.lecturaAncha}`}>
-          <span className={estilos.lecturaEtiqueta}>Kilometraje promedio</span>
+          <span className={estilos.lecturaEtiqueta}>{t.kilometrajePromedio}</span>
           <span className={estilos.lecturaValor}>{kilometraje}</span>
         </div>
       </div>
@@ -151,8 +192,8 @@ function VistaResumen({ datos }: { datos: ResumenOperacion }) {
         <div className={estilos.filas}>
           {datos.porTipoDocumento.slice(0, 6).map((fila) => (
             <div className={`${estilos.fila} ${estilos.filaSimple}`} key={fila.tipoDocumento}>
-              <span className={estilos.etiquetaFila}>{fila.tipoDocumento}</span>
-              <span className={estilos.cifraFila}>{formatearNumero(fila.cupones)}</span>
+              <span className={estilos.etiquetaFila}>{traducirValor(fila.tipoDocumento, textos.bloques)}</span>
+              <span className={estilos.cifraFila}>{formatearNumero(fila.cupones, locale)}</span>
             </div>
           ))}
         </div>
@@ -162,14 +203,15 @@ function VistaResumen({ datos }: { datos: ResumenOperacion }) {
 }
 
 function VistaRanking({ datos }: { datos: Ranking }) {
+  const { locale, textos } = useIdioma();
   const maximo = datos.filas.reduce((tope, fila) => Math.max(tope, fila.cupones), 0);
-  const titulo = TITULO_DIMENSION[datos.dimension] ?? 'Ranking';
+  const titulo = traducir(textos.bloques.dimensiones, datos.dimension, textos.bloques.titulos.ranking);
 
   if (datos.filas.length === 0) {
     return (
       <section className={estilos.bloque}>
         <Encabezado titulo={titulo} periodo={datos.periodo} />
-        <p className={estilos.actividadFila}>No hay registros en este período.</p>
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.registros}</p>
       </section>
     );
   }
@@ -182,11 +224,11 @@ function VistaRanking({ datos }: { datos: Ranking }) {
           <div className={estilos.fila} key={`${fila.etiqueta}-${indice}`}>
             <span className={estilos.posicion}>{String(indice + 1).padStart(2, '0')}</span>
             <span className={estilos.etiquetaFila} title={fila.etiqueta}>
-              {fila.etiqueta}
+              {traducirValor(fila.etiqueta, textos.bloques)}
             </span>
             <span className={estilos.cifraFila}>
-              {formatearNumero(fila.cupones)}
-              <span style={{ color: 'var(--texto-suave)' }}> · {formatearPorcentaje(fila.participacion)}</span>
+              {formatearNumero(fila.cupones, locale)}
+              <span style={{ color: 'var(--texto-suave)' }}> · {formatearPorcentaje(fila.participacion, locale)}</span>
             </span>
             <div className={estilos.medidor}>
               <div
@@ -202,12 +244,14 @@ function VistaRanking({ datos }: { datos: Ranking }) {
 }
 
 function VistaSerie({ datos }: { datos: SerieTemporal }) {
+  const { locale, textos } = useIdioma();
+  const t = textos.bloques;
   const puntos = datos.puntos;
   if (puntos.length === 0) {
     return (
       <section className={estilos.bloque}>
-        <Encabezado titulo="Evolución" periodo={datos.periodo} />
-        <p className={estilos.actividadFila}>No hay registros en este período.</p>
+        <Encabezado titulo={t.titulos.evolucion} periodo={datos.periodo} />
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.registros}</p>
       </section>
     );
   }
@@ -219,14 +263,17 @@ function VistaSerie({ datos }: { datos: SerieTemporal }) {
 
   return (
     <section className={estilos.bloque}>
-      <Encabezado titulo={`Evolución por ${datos.granularidad}`} periodo={datos.periodo} />
+      <Encabezado
+        titulo={t.titulos.evolucionPor(traducir(t.granularidades, datos.granularidad, datos.granularidad))}
+        periodo={datos.periodo}
+      />
       <div className={estilos.serie}>
         <svg
           className={estilos.serieGrafico}
           viewBox="0 0 100 40"
           preserveAspectRatio="none"
           role="img"
-          aria-label={`Serie de ${puntos.length} intervalos, máximo ${maximo} cupones`}
+          aria-label={t.serie.descripcion(puntos.length, formatearNumero(maximo, locale))}
         >
           {puntos.map((punto, indice) => {
             const alto = (punto.cupones / maximo) * 38;
@@ -240,15 +287,15 @@ function VistaSerie({ datos }: { datos: SerieTemporal }) {
                 height={Math.max(alto, 0.6)}
                 rx={0.4}
               >
-                <title>{`${punto.intervalo}: ${formatearNumero(punto.cupones)} cupones`}</title>
+                <title>{t.serie.barra(formatearFecha(punto.intervalo, locale), formatearNumero(punto.cupones, locale))}</title>
               </rect>
             );
           })}
         </svg>
         <div className={estilos.serieEje}>
-          <span>{primero ? formatearFecha(primero.intervalo) : ''}</span>
-          <span>máx. {formatearNumero(maximo)}</span>
-          <span>{ultimo ? formatearFecha(ultimo.intervalo) : ''}</span>
+          <span>{primero ? formatearFecha(primero.intervalo, locale) : ''}</span>
+          <span>{t.serie.maximo(formatearNumero(maximo, locale))}</span>
+          <span>{ultimo ? formatearFecha(ultimo.intervalo, locale) : ''}</span>
         </div>
       </div>
     </section>
@@ -265,7 +312,7 @@ function extraerFilas(resultado: unknown): { filas: Array<Record<string, unknown
     const enmascaradas = Array.isArray(objeto.columnasEnmascaradas)
       ? (objeto.columnasEnmascaradas as string[])
       : [];
-    for (const clave of ['filas', 'clientes', 'atenciones']) {
+    for (const clave of ['filas', 'clientes', 'atenciones', 'leads', 'llamadas']) {
       if (Array.isArray(objeto[clave])) {
         return { filas: objeto[clave] as Array<Record<string, unknown>>, enmascaradas };
       }
@@ -275,13 +322,14 @@ function extraerFilas(resultado: unknown): { filas: Array<Record<string, unknown
 }
 
 function VistaTabla({ titulo, resultado }: { titulo: string; resultado: unknown }) {
+  const { locale, textos } = useIdioma();
   const { filas, enmascaradas } = extraerFilas(resultado);
 
   if (filas.length === 0) {
     return (
       <section className={estilos.bloque}>
         <Encabezado titulo={titulo} />
-        <p className={estilos.actividadFila}>La consulta no devolvió filas.</p>
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.filas}</p>
       </section>
     );
   }
@@ -298,7 +346,7 @@ function VistaTabla({ titulo, resultado }: { titulo: string; resultado: unknown 
             <tr>
               {columnas.map((columna) => (
                 <th key={columna} scope="col">
-                  {etiquetarColumna(columna)}
+                  {etiquetaDeColumna(columna, textos.bloques)}
                 </th>
               ))}
             </tr>
@@ -318,8 +366,8 @@ function VistaTabla({ titulo, resultado }: { titulo: string; resultado: unknown 
                     valor === null || valor === undefined || valor === ''
                       ? '—'
                       : numerico
-                        ? formatearNumero(valor)
-                        : String(valor);
+                        ? formatearNumero(valor, locale)
+                        : traducirValor(valor, textos.bloques);
                   return (
                     <td key={columna} className={clase} title={texto}>
                       {texto}
@@ -336,13 +384,6 @@ function VistaTabla({ titulo, resultado }: { titulo: string; resultado: unknown 
   );
 }
 
-const TITULO_EJE_ENCUESTAS: Record<string, string> = {
-  concesionario: 'Satisfacción por concesionario',
-  sucursal: 'Satisfacción por sucursal',
-  mes: 'Satisfacción por mes',
-  total: 'Satisfacción general',
-};
-
 /** Colorea el NPS según el rango en que cae. */
 function claseNps(nps: number | null): string {
   if (nps === null) return '';
@@ -352,13 +393,15 @@ function claseNps(nps: number | null): string {
 }
 
 function VistaEncuestas({ datos }: { datos: AnalisisEncuestas }) {
-  const titulo = TITULO_EJE_ENCUESTAS[datos.eje] ?? 'Encuestas de posventa';
+  const { locale, textos } = useIdioma();
+  const t = textos.bloques.encuestas;
+  const titulo = traducir(textos.bloques.ejesEncuestas, datos.eje, textos.bloques.titulos.encuestas);
 
   if (datos.filas.length === 0) {
     return (
       <section className={estilos.bloque}>
         <Encabezado titulo={titulo} periodo={datos.periodo} />
-        <p className={estilos.actividadFila}>No hay respuestas en este período.</p>
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.respuestas}</p>
       </section>
     );
   }
@@ -370,70 +413,55 @@ function VistaEncuestas({ datos }: { datos: AnalisisEncuestas }) {
         <table className={estilos.tabla}>
           <thead>
             <tr>
-              <th scope="col">{datos.eje === 'mes' ? 'Mes' : 'Nombre'}</th>
-              <th scope="col" className={estilos.celdaNumerica}>Respuestas</th>
-              <th scope="col" className={estilos.celdaNumerica}>NPS</th>
-              <th scope="col" className={estilos.celdaNumerica}>Satisfacción</th>
-              <th scope="col" className={estilos.celdaNumerica}>Recomendación</th>
+              <th scope="col">{datos.eje === 'mes' ? t.mes : t.nombre}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.respuestas}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.nps}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.satisfaccion}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.recomendacion}</th>
             </tr>
           </thead>
           <tbody>
             {datos.filas.map((fila) => (
               <tr key={fila.etiqueta}>
-                <td title={fila.etiqueta}>{fila.etiqueta}</td>
-                <td className={estilos.celdaNumerica}>{formatearNumero(fila.respuestas)}</td>
+                <td title={fila.etiqueta}>{traducirValor(fila.etiqueta, textos.bloques)}</td>
+                <td className={estilos.celdaNumerica}>{formatearNumero(fila.respuestas, locale)}</td>
                 <td className={`${estilos.celdaNumerica} ${claseNps(fila.nps)}`}>
-                  {fila.nps === null ? '—' : fila.nps.toFixed(0)}
+                  {formatearDecimal(fila.nps, 0, locale)}
                 </td>
-                <td className={estilos.celdaNumerica}>
-                  {fila.satisfaccion === null ? '—' : fila.satisfaccion.toFixed(2).replace('.', ',')}
-                </td>
-                <td className={estilos.celdaNumerica}>
-                  {fila.recomendacion === null ? '—' : fila.recomendacion.toFixed(2).replace('.', ',')}
-                </td>
+                <td className={estilos.celdaNumerica}>{formatearDecimal(fila.satisfaccion, 2, locale)}</td>
+                <td className={estilos.celdaNumerica}>{formatearDecimal(fila.recomendacion, 2, locale)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className={estilos.notaBloque}>Notas de 1 a 7. NPS: promotor 7, pasivo 6, detractor 5 o menos.</p>
+      <p className={estilos.notaBloque}>{t.nota}</p>
     </section>
   );
 }
 
-const TITULO_EJE_LEADS: Record<string, string> = {
-  valoracion: 'Leads por temperatura',
-  concesionario: 'Leads por concesionario',
-  punto_venta: 'Leads por punto de venta',
-  modelo_interes: 'Leads por modelo de interés',
-  estado: 'Leads por estado',
-  origen: 'Leads por origen',
-  utm_origen: 'Leads por fuente digital',
-  dueno: 'Leads por vendedor',
-  fecha: 'Leads por día',
-  total: 'Leads',
-};
-
+/** Tramos de temperatura, del más caliente al más frío; la etiqueta sale de los textos. */
 const TEMPERATURAS: Array<{
-  clave: 'superCalientes' | 'calientes' | 'tibios' | 'frios';
-  etiqueta: string;
+  clave: keyof TextosBloques['temperaturas'];
   clase: string;
 }> = [
-  { clave: 'superCalientes', etiqueta: 'Super caliente', clase: estilos.calor4 ?? '' },
-  { clave: 'calientes', etiqueta: 'Caliente', clase: estilos.calor3 ?? '' },
-  { clave: 'tibios', etiqueta: 'Tibio', clase: estilos.calor2 ?? '' },
-  { clave: 'frios', etiqueta: 'Frío', clase: estilos.calor1 ?? '' },
+  { clave: 'superCalientes', clase: estilos.calor4 ?? '' },
+  { clave: 'calientes', clase: estilos.calor3 ?? '' },
+  { clave: 'tibios', clase: estilos.calor2 ?? '' },
+  { clave: 'frios', clase: estilos.calor1 ?? '' },
 ];
 
 function VistaLeads({ datos }: { datos: AnalisisLeads }) {
-  const titulo = TITULO_EJE_LEADS[datos.eje] ?? 'Leads';
+  const { locale, textos } = useIdioma();
+  const temperaturas = textos.bloques.temperaturas;
+  const titulo = traducir(textos.bloques.ejesLeads, datos.eje, textos.bloques.titulos.leads);
   const maximo = datos.filas.reduce((tope, fila) => Math.max(tope, fila.leads), 0);
 
   if (datos.filas.length === 0) {
     return (
       <section className={estilos.bloque}>
         <Encabezado titulo={titulo} periodo={datos.periodo} />
-        <p className={estilos.actividadFila}>No hay leads en este período.</p>
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.leads}</p>
       </section>
     );
   }
@@ -445,14 +473,14 @@ function VistaLeads({ datos }: { datos: AnalisisLeads }) {
         {datos.filas.map((fila) => (
           <div className={`${estilos.fila} ${estilos.filaSimple}`} key={fila.etiqueta}>
             <span className={estilos.etiquetaFila} title={fila.etiqueta}>
-              {fila.etiqueta}
+              {traducirValor(fila.etiqueta, textos.bloques)}
             </span>
-            <span className={estilos.cifraFila}>{formatearNumero(fila.leads)}</span>
+            <span className={estilos.cifraFila}>{formatearNumero(fila.leads, locale)}</span>
             <div
               className={`${estilos.medidor} ${estilos.medidorLeads}`}
               style={{ width: `${maximo === 0 ? 0 : (fila.leads / maximo) * 100}%` }}
             >
-              {TEMPERATURAS.map(({ clave, etiqueta, clase }) => {
+              {TEMPERATURAS.map(({ clave, clase }) => {
                 const valor = fila[clave];
                 if (valor === 0) return null;
                 return (
@@ -460,7 +488,7 @@ function VistaLeads({ datos }: { datos: AnalisisLeads }) {
                     key={clave}
                     className={`${estilos.tramo} ${clase}`}
                     style={{ width: `${(valor / fila.leads) * 100}%` }}
-                    title={`${etiqueta}: ${valor}`}
+                    title={`${temperaturas[clave]}: ${formatearNumero(valor, locale)}`}
                   />
                 );
               })}
@@ -469,10 +497,10 @@ function VistaLeads({ datos }: { datos: AnalisisLeads }) {
         ))}
       </div>
       <p className={estilos.notaBloque}>
-        {TEMPERATURAS.map(({ etiqueta, clase }) => (
-          <span className={estilos.leyenda} key={etiqueta}>
+        {TEMPERATURAS.map(({ clave, clase }) => (
+          <span className={estilos.leyenda} key={clave}>
             <span className={`${estilos.puntoLeyenda} ${clase}`} />
-            {etiqueta}
+            {temperaturas[clave]}
           </span>
         ))}
       </p>
@@ -481,37 +509,40 @@ function VistaLeads({ datos }: { datos: AnalisisLeads }) {
 }
 
 function VistaLlamadas({ datos }: { datos: AnalisisLlamadas }) {
+  const { locale, textos } = useIdioma();
+  const t = textos.bloques.llamadas;
+  const titulo = textos.bloques.titulos.telefonia;
   if (datos.filas.length === 0) {
     return (
       <section className={estilos.bloque}>
-        <Encabezado titulo="Telefonía" periodo={datos.periodo} />
-        <p className={estilos.actividadFila}>No hay llamadas en este período.</p>
+        <Encabezado titulo={titulo} periodo={datos.periodo} />
+        <p className={estilos.actividadFila}>{textos.bloques.vacios.llamadas}</p>
       </section>
     );
   }
 
   return (
     <section className={estilos.bloque}>
-      <Encabezado titulo="Telefonía" periodo={datos.periodo} />
+      <Encabezado titulo={titulo} periodo={datos.periodo} />
       <div className={estilos.envoltorioTabla}>
         <table className={estilos.tabla}>
           <thead>
             <tr>
-              <th scope="col">Grupo</th>
-              <th scope="col" className={estilos.celdaNumerica}>Llamadas</th>
-              <th scope="col" className={estilos.celdaNumerica}>Atendidas</th>
-              <th scope="col" className={estilos.celdaNumerica}>Atención</th>
-              <th scope="col" className={estilos.celdaNumerica}>Minutos</th>
+              <th scope="col">{t.grupo}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.llamadas}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.atendidas}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.atencion}</th>
+              <th scope="col" className={estilos.celdaNumerica}>{t.minutos}</th>
             </tr>
           </thead>
           <tbody>
             {datos.filas.map((fila) => (
               <tr key={fila.etiqueta}>
-                <td title={fila.etiqueta}>{fila.etiqueta}</td>
-                <td className={estilos.celdaNumerica}>{formatearNumero(fila.llamadas)}</td>
-                <td className={estilos.celdaNumerica}>{formatearNumero(fila.atendidas)}</td>
-                <td className={estilos.celdaNumerica}>{formatearPorcentaje(fila.porcentajeAtencion)}</td>
-                <td className={estilos.celdaNumerica}>{formatearNumero(fila.minutosHablados)}</td>
+                <td title={fila.etiqueta}>{traducirValor(fila.etiqueta, textos.bloques)}</td>
+                <td className={estilos.celdaNumerica}>{formatearNumero(fila.llamadas, locale)}</td>
+                <td className={estilos.celdaNumerica}>{formatearNumero(fila.atendidas, locale)}</td>
+                <td className={estilos.celdaNumerica}>{formatearPorcentaje(fila.porcentajeAtencion, locale)}</td>
+                <td className={estilos.celdaNumerica}>{formatearNumero(fila.minutosHablados, locale)}</td>
               </tr>
             ))}
           </tbody>
@@ -521,24 +552,13 @@ function VistaLlamadas({ datos }: { datos: AnalisisLlamadas }) {
   );
 }
 
-const TITULO_HERRAMIENTA: Record<string, string> = {
-  valores_dimension: 'Valores en la base',
-  buscar_cliente: 'Clientes',
-  buscar_lead: 'Leads',
-  buscar_llamadas: 'Llamadas',
-  anexos_telefonia: 'Anexos telefónicos',
-  historial_vehiculo: 'Historial del vehículo',
-  consulta_sql: 'Consulta a medida',
-  listar_tablas: 'Tablas',
-  describir_tabla: 'Estructura de la tabla',
-};
-
 /**
  * Renderiza un bloque de datos según el formato que declaró la herramienta.
  * Si el resultado no encaja con la forma esperada, cae en la vista de tabla.
  */
 export function BloqueDeDatos({ bloque }: { bloque: BloqueDatos }) {
-  const titulo = TITULO_HERRAMIENTA[bloque.herramienta] ?? 'Resultado';
+  const { textos } = useIdioma();
+  const titulo = traducir(textos.bloques.herramientas, bloque.herramienta, textos.bloques.titulos.resultado);
 
   if (bloque.formato === 'resumen' && typeof bloque.resultado === 'object' && bloque.resultado !== null) {
     return <VistaResumen datos={bloque.resultado as ResumenOperacion} />;

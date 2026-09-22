@@ -8,7 +8,9 @@ import {
   revisarBloqueo,
   verificarCredenciales,
 } from '@wibot/auth';
+import { idiomaDePeticion } from '@/lib/idioma-servidor';
 import { obtenerIp, opcionesCookie } from '@/lib/sesion';
+import { textosServidor } from '@/lib/textos/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,11 +25,12 @@ interface CuerpoEntrada {
  * exista o no la cuenta, para no revelar qué correos están registrados.
  */
 export async function POST(peticion: Request): Promise<Response> {
+  const textos = textosServidor[idiomaDePeticion(peticion)].sesion;
   let cuerpo: CuerpoEntrada;
   try {
     cuerpo = (await peticion.json()) as CuerpoEntrada;
   } catch {
-    return Response.json({ error: 'Petición mal formada.' }, { status: 400 });
+    return Response.json({ error: textos.peticionMalFormada }, { status: 400 });
   }
 
   const correo = typeof cuerpo.correo === 'string' ? cuerpo.correo.trim() : '';
@@ -35,25 +38,18 @@ export async function POST(peticion: Request): Promise<Response> {
   const ip = await obtenerIp(peticion);
 
   if (correo === '' || contrasena === '' || !esCorreoValido(correo)) {
-    return Response.json({ error: 'Escribí tu correo y tu contraseña.' }, { status: 400 });
+    return Response.json({ error: textos.faltanDatos }, { status: 400 });
   }
 
   const bloqueo = revisarBloqueo(correo, ip);
   if (bloqueo.bloqueado) {
-    return Response.json(
-      {
-        error: `Demasiados intentos fallidos. Probá de nuevo en ${bloqueo.minutosRestantes} minuto${
-          bloqueo.minutosRestantes === 1 ? '' : 's'
-        }.`,
-      },
-      { status: 429 },
-    );
+    return Response.json({ error: textos.demasiadosIntentos(bloqueo.minutosRestantes) }, { status: 429 });
   }
 
   const usuario = await verificarCredenciales(correo, contrasena);
   if (!usuario) {
     registrarIntento(correo, ip, false);
-    return Response.json({ error: 'Correo o contraseña incorrectos.' }, { status: 401 });
+    return Response.json({ error: textos.credencialesIncorrectas }, { status: 401 });
   }
 
   registrarIntento(correo, ip, true);

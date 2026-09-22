@@ -1,0 +1,101 @@
+import type { Idioma } from '../idioma';
+
+const en = {
+  chat: {
+    cuerpoInvalido: 'The request body is not valid JSON.',
+    preguntaVacia: 'Type a question.',
+    preguntaLarga: 'The question is too long.',
+    errorInesperado: 'Unexpected error while querying the database.',
+    faltaApiKey: 'GEMINI_API_KEY is missing from the environment. The Thinking Orb cannot answer without a model.',
+    sinConexion: 'WiBot could not connect to the model. Check the connection and ask again.',
+    sinAutenticacion: 'WiBot could not authenticate with the model. Let the technical team know.',
+    demasiadosPedidos: 'The model is receiving too many requests. Wait a few seconds and ask again.',
+    modeloNoDisponible: 'The model is not available right now. Try again in a minute.',
+    consultaNoCompletada:
+      'WiBot could not complete this query. Try rephrasing it more briefly; if it happens again, let the technical team know.',
+    consultaNoCompletadaCorta: 'WiBot could not complete this query. Try rephrasing it more briefly.',
+    sinCierre: 'WiBot could not finish the answer. Try asking for fewer blocks at a time.',
+    respuestaIncompleta: 'WiBot could not complete the answer. Try narrowing the question to one period or one dealer.',
+    sinRespuesta: 'The model returned no answer. Try rephrasing the question.',
+    diagnostico: {
+      modeloInalcanzable: 'Could not reach the model',
+      modeloRespondio: (estado: number) => `The model responded ${estado}`,
+      rondaFallo: (ronda: number) => `Round ${ronda} failed`,
+      rondaRecuperada: (ronda: number) => `Round ${ronda} recovered without tool calls`,
+      reintentoFallo: (ronda: number) => `The retry of round ${ronda} also failed`,
+      rondaConTexto: (ronda: number) => `Round ${ronda}: the model answered with text`,
+      rondaConConsultas: (ronda: number, cantidad: number) =>
+        `Round ${ronda}: the model requested ${cantidad} ${cantidad === 1 ? 'query' : 'queries'}`,
+      argumentosIlegibles: (herramienta: string) => `Unreadable arguments in ${herramienta}`,
+      herramientaRespondio: (herramienta: string) => `${herramienta} responded`,
+      herramientaFallo: (herramienta: string) => `${herramienta} failed`,
+      topeAgotado: 'Query limit reached; closing with what was gathered',
+    },
+  },
+  sesion: {
+    peticionMalFormada: 'Malformed request.',
+    faltanDatos: 'Enter your email and password.',
+    demasiadosIntentos: (minutos: number) =>
+      `Too many failed attempts. Try again in ${minutos} minute${minutos === 1 ? '' : 's'}.`,
+    credencialesIncorrectas: 'Incorrect email or password.',
+    sesionExpirada: 'Your session expired. Please sign in again.',
+    claveCorta: (caracteres: number) => `The new password must be at least ${caracteres} characters long.`,
+    claveIgual: 'The new password must be different from the current one.',
+    claveActualIncorrecta: 'The current password does not match.',
+  },
+  acceso: {
+    tokenInvalido: 'Invalid or revoked service token.',
+    origenNoAutorizado: 'This origin is not authorized for the token.',
+    sesionExpirada: 'Your session expired. Please sign in again.',
+  },
+};
+
+export const textosServidor: Record<Idioma, typeof en> = {
+  en,
+  zh: {
+    chat: {
+      cuerpoInvalido: '请求正文不是有效的 JSON。',
+      preguntaVacia: '请输入一个问题。',
+      preguntaLarga: '问题太长了。',
+      errorInesperado: '查询数据库时发生意外错误。',
+      faltaApiKey: '环境中缺少 GEMINI_API_KEY。没有模型，Thinking Orb 无法回答。',
+      sinConexion: 'WiBot 无法连接到模型。请检查网络连接后重新提问。',
+      sinAutenticacion: 'WiBot 无法通过模型的身份验证。请通知技术团队。',
+      demasiadosPedidos: '模型当前收到的请求过多。请稍等几秒后重新提问。',
+      modeloNoDisponible: '模型暂时不可用。请一分钟后再试。',
+      consultaNoCompletada: 'WiBot 无法完成此查询。请尝试把问题说得更简短；如果仍然出现，请通知技术团队。',
+      consultaNoCompletadaCorta: 'WiBot 无法完成此查询。请尝试把问题说得更简短。',
+      sinCierre: 'WiBot 无法完成回答。请尝试一次少问几个板块。',
+      respuestaIncompleta: 'WiBot 无法完成回答。请尝试把问题限定在一个时间段或一个经销商。',
+      sinRespuesta: '模型没有返回回答。请尝试换一种方式提问。',
+      diagnostico: {
+        modeloInalcanzable: '无法连接到模型',
+        modeloRespondio: (estado: number) => `模型返回 ${estado}`,
+        rondaFallo: (ronda: number) => `第 ${ronda} 轮失败`,
+        rondaRecuperada: (ronda: number) => `第 ${ronda} 轮在不调用工具的情况下恢复`,
+        reintentoFallo: (ronda: number) => `第 ${ronda} 轮的重试也失败了`,
+        rondaConTexto: (ronda: number) => `第 ${ronda} 轮：模型以文本回答`,
+        rondaConConsultas: (ronda: number, cantidad: number) => `第 ${ronda} 轮：模型请求了 ${cantidad} 次查询`,
+        argumentosIlegibles: (herramienta: string) => `${herramienta} 的参数无法解析`,
+        herramientaRespondio: (herramienta: string) => `${herramienta} 已返回`,
+        herramientaFallo: (herramienta: string) => `${herramienta} 失败`,
+        topeAgotado: '已达到查询上限；用已收集的数据收尾',
+      },
+    },
+    sesion: {
+      peticionMalFormada: '请求格式错误。',
+      faltanDatos: '请输入邮箱和密码。',
+      demasiadosIntentos: (minutos: number) => `失败次数过多，请在 ${minutos} 分钟后重试。`,
+      credencialesIncorrectas: '邮箱或密码错误。',
+      sesionExpirada: '会话已过期，请重新登录。',
+      claveCorta: (caracteres: number) => `新密码至少需要 ${caracteres} 个字符。`,
+      claveIgual: '新密码必须与当前密码不同。',
+      claveActualIncorrecta: '当前密码不正确。',
+    },
+    acceso: {
+      tokenInvalido: '服务令牌无效或已被撤销。',
+      origenNoAutorizado: '该来源未获此令牌授权。',
+      sesionExpirada: '会话已过期，请重新登录。',
+    },
+  },
+};

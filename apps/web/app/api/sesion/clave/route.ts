@@ -1,5 +1,7 @@
 import { cambiarContrasena, obtenerConfiguracionAcceso, verificarCredenciales } from '@wibot/auth';
+import { idiomaDePeticion } from '@/lib/idioma-servidor';
 import { obtenerUsuarioActual } from '@/lib/sesion';
+import { textosServidor } from '@/lib/textos/servidor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,16 +17,17 @@ interface CuerpoClave {
  * apropiarse de la cuenta.
  */
 export async function POST(peticion: Request): Promise<Response> {
+  const textos = textosServidor[idiomaDePeticion(peticion)].sesion;
   const usuario = await obtenerUsuarioActual();
   if (!usuario) {
-    return Response.json({ error: 'Tu sesión expiró. Volvé a entrar.' }, { status: 401 });
+    return Response.json({ error: textos.sesionExpirada }, { status: 401 });
   }
 
   let cuerpo: CuerpoClave;
   try {
     cuerpo = (await peticion.json()) as CuerpoClave;
   } catch {
-    return Response.json({ error: 'Petición mal formada.' }, { status: 400 });
+    return Response.json({ error: textos.peticionMalFormada }, { status: 400 });
   }
 
   const actual = typeof cuerpo.actual === 'string' ? cuerpo.actual : '';
@@ -32,18 +35,15 @@ export async function POST(peticion: Request): Promise<Response> {
   const { largoMinimoContrasena } = obtenerConfiguracionAcceso();
 
   if (nueva.length < largoMinimoContrasena) {
-    return Response.json(
-      { error: `La contraseña nueva debe tener al menos ${largoMinimoContrasena} caracteres.` },
-      { status: 400 },
-    );
+    return Response.json({ error: textos.claveCorta(largoMinimoContrasena) }, { status: 400 });
   }
   if (nueva === actual) {
-    return Response.json({ error: 'La contraseña nueva tiene que ser distinta de la actual.' }, { status: 400 });
+    return Response.json({ error: textos.claveIgual }, { status: 400 });
   }
 
   const valida = await verificarCredenciales(usuario.correo, actual);
   if (!valida) {
-    return Response.json({ error: 'La contraseña actual no coincide.' }, { status: 401 });
+    return Response.json({ error: textos.claveActualIncorrecta }, { status: 401 });
   }
 
   await cambiarContrasena(usuario.correo, nueva);

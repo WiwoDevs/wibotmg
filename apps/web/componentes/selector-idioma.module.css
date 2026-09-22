@@ -1,0 +1,30 @@
+.selector {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie);
+}
+
+.opcion {
+  min-width: 40px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  background: transparent;
+  color: var(--texto-suave);
+  font: 600 12px/1 var(--fuente-interfaz);
+  cursor: pointer;
+}
+
+.opcion[aria-pressed='true'] {
+  background: var(--superficie-inversa);
+  color: var(--texto-inverso);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--senal);
+  outline-offset: 2px;
+}
