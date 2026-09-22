@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Outfit, Plus_Jakarta_Sans, Tomorrow } from 'next/font/google';
+import { ProveedorIdioma } from '@/componentes/ProveedorIdioma';
+import { LOCALE_IDIOMA } from '@/lib/idioma';
+import { obtenerIdiomaActual } from '@/lib/idioma-servidor';
+import { obtenerTextos } from '@/lib/textos';
 import './globals.css';
 
 const interfaz = Plus_Jakarta_Sans({
@@ -23,11 +27,11 @@ const datos = Tomorrow({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'WiWO Me',
-  description:
-    'Preguntale en castellano a la base de cupones de servicio de MG Contact y recibí la cifra con su período.',
-};
+/** Título y descripción del documento en el idioma elegido. */
+export async function generateMetadata(): Promise<Metadata> {
+  const idioma = await obtenerIdiomaActual();
+  return { title: 'WiWO Me', description: obtenerTextos(idioma).comun.metaDescripcion };
+}
 
 export const viewport: Viewport = {
   themeColor: '#f8fad7',
@@ -36,10 +40,13 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const idioma = await obtenerIdiomaActual();
   return (
-    <html lang="es-CL" className={`${interfaz.variable} ${marca.variable} ${datos.variable}`}>
-      <body>{children}</body>
+    <html lang={LOCALE_IDIOMA[idioma]} className={`${interfaz.variable} ${marca.variable} ${datos.variable}`}>
+      <body>
+        <ProveedorIdioma idiomaInicial={idioma}>{children}</ProveedorIdioma>
+      </body>
     </html>
   );
 }
